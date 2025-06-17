@@ -813,12 +813,6 @@ class SettingsController extends Controller
             $setting->labels_display_tag = 0;
         }
 
-        if ($request->filled('labels_display_tag')) {
-            $setting->labels_display_tag = 1;
-        } else {
-            $setting->labels_display_tag = 0;
-        }
-
         if ($request->filled('labels_display_model')) {
             $setting->labels_display_model = 1;
         } else {

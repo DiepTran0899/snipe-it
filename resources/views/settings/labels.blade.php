@@ -56,8 +56,9 @@
 
 
 
-                            </div>
-                        </div>
+                                  </div>
+                              </div>
+
 
 
                         @if ($setting->label2_enable)
@@ -238,6 +239,15 @@
                                     </div>
                                 </div>
 
+                            <div class="form-group">
+                                <div class="col-md-9 col-md-offset-3">
+                                    <label class="form-control">
+                                        <input type="checkbox" name="labels_display_tag" value="1" @checked(old('labels_display_tag', $setting->labels_display_tag)) aria-label="labels_display_tag" />
+                                        {{ trans('admin/hardware/form.tag') }}
+                                    </label>
+                                </div>
+                            </div>
+
                     @if($setting->label2_enable == 0)
                                 <!-- QR Text -->
                                 <div class="form-group{{ $errors->has('qr_text') ? ' has-error' : '' }}">
@@ -351,15 +361,6 @@
                                 </div>
                             </div>
 
-                            <div class="form-group">
-                                <div class="col-md-9 col-md-offset-3">
-                                    <label class="form-control">
-                                        <input type="checkbox" name="labels_display_tag" value="1" @checked(old('labels_display_tag', $setting->labels_display_tag)) aria-label="labels_display_tag" />
-                                        {{ trans('admin/hardware/form.tag') }}
-                                    </label>
-                                </div>
-                            </div>
-
                             @include('partials.bootstrap-table')
 
                         @else
@@ -387,7 +388,6 @@
                             <input name="labels_pageheight" type="hidden" value="{{ old('labels_pageheight', $setting->labels_pageheight) }}" />
                             <input name="labels_display_name" type="hidden" value="{{ old('labels_display_name', $setting->labels_display_name) }}" />
                             <input name="labels_display_serial" type="hidden" value="{{ old('labels_display_serial', $setting->labels_display_serial) }}" />
-                            <input name="labels_display_tag" type="hidden" value="{{ old('labels_display_tag', $setting->labels_display_tag) }}" />
                             <input name="labels_display_model" type="hidden" value="{{ old('labels_display_model', $setting->labels_display_model) }}" />
                             <input name="labels_display_company_name" type="hidden" value="{{ old('labels_display_company_name', $setting->labels_display_company_name) }}" />
                         @else

@@ -706,3 +706,8 @@ Route::middleware(['auth'])->get(
     ->breadcrumbs(fn (Trail $trail) =>
     $trail->parent('home')->push('Custom Dashboard', route('dashboard.custom'))
     );
+
+Route::middleware(['auth'])->get(
+    'custom-dashboard/data',
+    [DashboardController::class, 'customData']
+)->name('dashboard.custom.data');

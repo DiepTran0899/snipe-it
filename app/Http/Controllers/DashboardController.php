@@ -7,6 +7,8 @@ use Illuminate\Http\RedirectResponse;
 use \Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
+use App\Models\Asset;
 use App\Models\AssetModel;
 use App\Models\Location;
 use App\Models\Statuslabel;
@@ -58,56 +60,42 @@ class DashboardController extends Controller
     }
 
     /**
-     * Display a simplified custom dashboard with basic filtering.
+     * Display the dynamic dashboard view.
      */
-    public function custom(Request $request) : View
+    public function custom() : View
     {
-        // eager load relations for status, model, location and assignee
-        $query = \App\Models\Asset::with(['assetstatus', 'model', 'location', 'assignedTo']);
+        $statuses = Statuslabel::orderBy('name')->get(['id', 'name'])->map->only('id','name');
+        $models = AssetModel::orderBy('name')->get(['id', 'name'])->map->only('id','name');
+        $locations = Location::orderBy('name')->get(['id', 'name'])->map->only('id','name');
+        $users = User::orderBy('first_name')->get()->map(function ($u) {
+            return ['id' => $u->id, 'name' => trim($u->first_name . ' ' . $u->last_name)];
+        });
 
-        if ($request->filled('status_id')) {
-            $query->where('status_id', $request->status_id);
-        }
+        return view('dashboard_custom', compact('statuses', 'models', 'locations', 'users'));
+    }
 
-        if ($request->filled('model_id')) {
-            $query->where('model_id', $request->model_id);
-        }
+    /**
+     * Provide asset data for the custom dashboard.
+     */
+    public function customData() : JsonResponse
+    {
+        $assets = Asset::with(['assetstatus', 'model', 'location', 'assignedTo'])
+            ->orderBy('name')
+            ->limit(1000)
+            ->get();
 
-        if ($request->filled('location_id')) {
-            $query->where('location_id', $request->location_id);
-        }
+        $data = $assets->map(function ($a) {
+            return [
+                'name' => $a->name,
+                'serial' => $a->serial,
+                'status' => optional($a->assetstatus)->name,
+                'model' => optional($a->model)->name,
+                'location' => optional($a->location)->name,
+                'user' => optional($a->assignedTo)->name ?? optional($a->assignedTo)->first_name,
+                'updated_at' => optional($a->updated_at)->toDateString(),
+            ];
+        });
 
-        if ($request->filled('user_id')) {
-            $query->where('assigned_type', User::class)
-                ->where('assigned_to', $request->user_id);
-        }
-
-        if ($request->filled('search')) {
-            $search = $request->search;
-            $query->where(function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                    ->orWhere('serial', 'like', "%{$search}%");
-            });
-        }
-
-        $assets = $query->orderBy('name')->limit(100)->get();
-
-        $statusCounts = $assets->groupBy(fn ($a) => optional($a->assetstatus)->name ?? 'Unknown')
-            ->map->count()
-            ->toArray();
-
-        $statuses = Statuslabel::orderBy('name')->pluck('name', 'id');
-        $models = AssetModel::orderBy('name')->pluck('name', 'id');
-        $locations = Location::orderBy('name')->pluck('name', 'id');
-        $users = User::orderBy('first_name')->pluck('first_name', 'id');
-
-        return view('dashboard_custom', compact(
-            'assets',
-            'statusCounts',
-            'statuses',
-            'models',
-            'locations',
-            'users'
-        ));
+        return response()->json($data);
     }
 }

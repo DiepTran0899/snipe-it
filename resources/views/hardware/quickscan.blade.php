@@ -126,6 +126,7 @@
 
 @section('moar_scripts')
     <script nonce="{{ csrf_token() }}">
+        var baseUrl = $('meta[name="baseUrl"]').attr('content');
 
         $("#audit-form").submit(function (event) {
             $('#audited-div').show();

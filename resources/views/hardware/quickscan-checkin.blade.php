@@ -119,6 +119,7 @@
 
 @section('moar_scripts')
     <script nonce="{{ csrf_token() }}">
+        var baseUrl = $('meta[name="baseUrl"]').attr('content');
 
         $("#checkin-form").submit(function (event) {
             $('#checkedin-div').show();

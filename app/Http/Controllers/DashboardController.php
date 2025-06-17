@@ -13,6 +13,7 @@ use App\Models\AssetModel;
 use App\Models\Location;
 use App\Models\Statuslabel;
 use App\Models\User;
+use App\Models\Department;
 
 
 /**
@@ -67,11 +68,12 @@ class DashboardController extends Controller
         $statuses = Statuslabel::orderBy('name')->get(['id', 'name'])->map->only('id','name');
         $models = AssetModel::orderBy('name')->get(['id', 'name'])->map->only('id','name');
         $locations = Location::orderBy('name')->get(['id', 'name'])->map->only('id','name');
+        $departments = Department::orderBy('name')->get(['id','name'])->map->only('id','name');
         $users = User::orderBy('first_name')->get()->map(function ($u) {
             return ['id' => $u->id, 'name' => trim($u->first_name . ' ' . $u->last_name)];
         });
 
-        return view('dashboard_custom', compact('statuses', 'models', 'locations', 'users'));
+        return view('dashboard_custom', compact('statuses', 'models', 'locations', 'departments', 'users'));
     }
 
     /**
@@ -79,7 +81,7 @@ class DashboardController extends Controller
      */
     public function customData() : JsonResponse
     {
-        $assets = Asset::with(['assetstatus', 'model', 'location', 'assignedTo'])
+        $assets = Asset::with(['assetstatus', 'model', 'location', 'assignedTo.department'])
             ->orderBy('name')
             ->limit(1000)
             ->get();
@@ -91,6 +93,7 @@ class DashboardController extends Controller
                 'status' => optional($a->assetstatus)->name,
                 'model' => optional($a->model)->name,
                 'location' => optional($a->location)->name,
+                'department' => optional(optional($a->assignedTo)->department)->name,
                 'user' => optional($a->assignedTo)->name ?? optional($a->assignedTo)->first_name,
                 'updated_at' => optional($a->updated_at)->toDateString(),
             ];

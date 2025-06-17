@@ -1338,6 +1338,9 @@ class AssetsController extends Controller
 
             try {
                 $settings = Setting::getSettings();
+                if ($request->has('show_asset_tag')) {
+                    $settings->labels_display_tag = $request->boolean('show_asset_tag');
+                }
 
                 // Check if logo file exists in storage and disable logo if not found
                 // This prevents errors when trying to include a non-existent logo in the PDF

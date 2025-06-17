@@ -136,9 +136,14 @@ class BulkAssetsController extends Controller
                 case 'labels':
                     $this->authorize('view', Asset::class);
 
+                    $settings = Setting::getSettings();
+                    if ($request->has('show_asset_tag')) {
+                        $settings->labels_display_tag = $request->boolean('show_asset_tag');
+                    }
+
                     return (new Label)
                         ->with('assets', $assets)
-                        ->with('settings', Setting::getSettings())
+                        ->with('settings', $settings)
                         ->with('bulkedit', true)
                         ->with('count', 0);
 

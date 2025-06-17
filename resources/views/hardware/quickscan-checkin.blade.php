@@ -29,17 +29,12 @@
                 <div class="box-body">
                     {{csrf_field()}}
 
-                    <!-- Asset Tag -->
-                    <div class="form-group {{ $errors->has('asset_tag') ? 'error' : '' }}">
-                        <label for="asset_tag" class="col-md-3 control-label" id="checkin_tag">{{ trans('general.asset_tag') }}</label>
-                        <div class="col-md-9">
-                            <div class="input-group col-md-11 required">
-                                <input type="text" class="form-control" name="asset_tag" id="asset_tag" value="{{ old('asset_tag') }}" required>
-
-                            </div>
-                            {!! $errors->first('asset_tag', '<span class="alert-msg" aria-hidden="true"><i class="fas fa-times" aria-hidden="true"></i> :message</span>') !!}
-                        </div>
-                    </div>
+                    @include ('partials.forms.edit.asset-select', [
+                        'translated_name' => trans('general.asset_tag'),
+                        'fieldname' => 'asset_ids[]',
+                        'select_id' => 'asset_tag',
+                        'multiple' => true
+                    ])
 
                     <!-- Status -->
                     <div class="form-group {{ $errors->has('status_id') ? 'error' : '' }}">
@@ -131,41 +126,54 @@
 
             event.preventDefault();
 
-            var form = $("#checkin-form").get(0);
-            var formData = $('#checkin-form').serializeArray();
+            var assetIds = $('#asset_tag').val() || [];
+            var formArray = $('#checkin-form').serializeArray();
+            var data = {};
+            $.each(formArray, function(i, field){
+                if (field.name !== 'asset_ids[]') {
+                    data[field.name] = field.value;
+                }
+            });
 
-            $.ajax({
-                url: "{{ route('api.asset.checkinbytag') }}",
-                type : 'POST',
-                headers: {
-                    "X-Requested-With": 'XMLHttpRequest',
-                    "X-CSRF-TOKEN": $('meta[name="csrf-token"]').attr('content')
-                },
-                dataType : 'json',
-                data : formData,
-                success : function (data) {
-                    if (data.status == 'success') {
-                        $('#checkedin tbody').prepend("<tr class='success'><td>" + data.payload.asset_tag + "</td><td>" + data.payload.model + "</td><td>" + data.payload.model_number + "</td><td>" + data.messages + "</td><td><i class='fas fa-check text-success'></i></td></tr>");
-
-                        @if ($user?->enable_sounds)
-                        var audio = new Audio('{{ config('app.url') }}/sounds/success.mp3');
-                        audio.play()
-                        @endif
-
-                        incrementOnSuccess();
-                    } else {
-                        handlecheckinFail(data);
-                    }
-                    $('input#asset_tag').val('');
-                },
-                error: function (data) {
-                    handlecheckinFail(data);
-                },
-                complete: function() {
+            function checkinNext(index) {
+                if (index >= assetIds.length) {
                     $('#checkin-loader').hide();
+                    $('#asset_tag').val(null).trigger('change');
+                    return;
                 }
 
-            });
+                $.ajax({
+                    url: baseUrl + 'api/v1/hardware/' + assetIds[index] + '/checkin',
+                    type : 'POST',
+                    headers: {
+                        "X-Requested-With": 'XMLHttpRequest',
+                        "X-CSRF-TOKEN": $('meta[name="csrf-token"]').attr('content')
+                    },
+                    dataType : 'json',
+                    data : data,
+                    success : function (response) {
+                        if (response.status == 'success') {
+                            $('#checkedin tbody').prepend("<tr class='success'><td>" + response.payload.asset_tag + "</td><td>" + response.payload.model + "</td><td>" + response.payload.model_number + "</td><td>" + response.messages + "</td><td><i class='fas fa-check text-success'></i></td></tr>");
+                            @if ($user?->enable_sounds)
+                            var audio = new Audio('{{ config('app.url') }}/sounds/success.mp3');
+                            audio.play()
+                            @endif
+                            incrementOnSuccess();
+                        } else {
+                            handlecheckinFail(response);
+                        }
+                    },
+                    error: function (response) {
+                        handlecheckinFail(response);
+                    },
+                    complete: function() {
+                        checkinNext(index + 1);
+                    }
+
+                });
+            }
+
+            checkinNext(0);
 
             return false;
         });

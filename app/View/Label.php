@@ -98,7 +98,9 @@ class Label implements View
 
                 $assetData->put('asset', $asset);
                 $assetData->put('id', $asset->id);
-                $assetData->put('tag', $asset->asset_tag);
+                if ($settings->labels_display_tag) {
+                    $assetData->put('tag', $asset->asset_tag);
+                }
 
                 if ($template->getSupportTitle() && !empty($settings->label2_title)) {
                     $title = str_replace('{COMPANY}', data_get($asset, 'company.name'), $settings->label2_title);

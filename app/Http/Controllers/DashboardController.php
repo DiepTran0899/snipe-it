@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Artisan;
 use Illuminate\Http\RedirectResponse;
 use \Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Session;
+use Illuminate\Http\Request;
 
 
 /**
@@ -50,5 +51,40 @@ class DashboardController extends Controller
             // Redirect to the profile page
             return redirect()->intended('account/view-assets');
         }
+    }
+
+    /**
+     * Display a simplified custom dashboard with basic filtering.
+     */
+    public function custom(Request $request) : View
+    {
+        $query = \App\Models\Asset::query()->with(['statuslabel', 'model', 'location', 'assignedUser']);
+
+        if ($request->filled('status_id')) {
+            $query->where('status_id', $request->status_id);
+        }
+
+        if ($request->filled('model_id')) {
+            $query->where('model_id', $request->model_id);
+        }
+
+        if ($request->filled('name')) {
+            $query->where('name', 'like', '%'.$request->name.'%');
+        }
+
+        $assets = $query->limit(100)->get();
+
+        $statusCounts = [];
+        foreach ($assets as $asset) {
+            $name = optional($asset->statuslabel)->name ?? 'Unknown';
+            if (!isset($statusCounts[$name])) {
+                $statusCounts[$name] = 0;
+            }
+            $statusCounts[$name]++;
+        }
+
+        return view('dashboard_custom')
+            ->with('assets', $assets)
+            ->with('statusCounts', $statusCounts);
     }
 }

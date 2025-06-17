@@ -351,6 +351,15 @@
                                 </div>
                             </div>
 
+                            <div class="form-group">
+                                <div class="col-md-9 col-md-offset-3">
+                                    <label class="form-control">
+                                        <input type="checkbox" name="labels_display_tag" value="1" @checked(old('labels_display_tag', $setting->labels_display_tag)) aria-label="labels_display_tag" />
+                                        {{ trans('admin/hardware/form.tag') }}
+                                    </label>
+                                </div>
+                            </div>
+
                             @include('partials.bootstrap-table')
 
                         @else

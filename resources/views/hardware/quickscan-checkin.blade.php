@@ -29,17 +29,8 @@
                 <div class="box-body">
                     {{csrf_field()}}
 
-                    <!-- Asset Tag -->
-                    <div class="form-group {{ $errors->has('asset_tag') ? 'error' : '' }}">
-                        <label for="asset_tag" class="col-md-3 control-label" id="checkin_tag">{{ trans('general.asset_tag') }}</label>
-                        <div class="col-md-9">
-                            <div class="input-group col-md-11 required">
-                                <input type="text" class="form-control" name="asset_tag" id="asset_tag" value="{{ old('asset_tag') }}" required>
-
-                            </div>
-                            {!! $errors->first('asset_tag', '<span class="alert-msg" aria-hidden="true"><i class="fas fa-times" aria-hidden="true"></i> :message</span>') !!}
-                        </div>
-                    </div>
+                    <!-- Asset Tags -->
+                    @include('partials.forms.edit.asset-tag-select', ['fieldname' => 'asset_tags', 'translated_name' => trans('general.asset_tag'), 'select_id' => 'asset_tags'])
 
                     <!-- Status -->
                     <div class="form-group {{ $errors->has('status_id') ? 'error' : '' }}">
@@ -131,41 +122,50 @@
 
             event.preventDefault();
 
-            var form = $("#checkin-form").get(0);
-            var formData = $('#checkin-form').serializeArray();
+            var tags = $('#asset_tags').val() || [];
+            formData = formData.filter(function(item){ return item.name !== 'asset_tags[]'; });
 
-            $.ajax({
-                url: "{{ route('api.asset.checkinbytag') }}",
-                type : 'POST',
-                headers: {
-                    "X-Requested-With": 'XMLHttpRequest',
-                    "X-CSRF-TOKEN": $('meta[name="csrf-token"]').attr('content')
-                },
-                dataType : 'json',
-                data : formData,
-                success : function (data) {
-                    if (data.status == 'success') {
-                        $('#checkedin tbody').prepend("<tr class='success'><td>" + data.payload.asset_tag + "</td><td>" + data.payload.model + "</td><td>" + data.payload.model_number + "</td><td>" + data.messages + "</td><td><i class='fas fa-check text-success'></i></td></tr>");
-
-                        @if ($user?->enable_sounds)
-                        var audio = new Audio('{{ config('app.url') }}/sounds/success.mp3');
-                        audio.play()
-                        @endif
-
-                        incrementOnSuccess();
-                    } else {
-                        handlecheckinFail(data);
-                    }
-                    $('input#asset_tag').val('');
-                },
-                error: function (data) {
-                    handlecheckinFail(data);
-                },
-                complete: function() {
+            function sendNextTag() {
+                if(tags.length === 0){
                     $('#checkin-loader').hide();
+                    return;
                 }
+                var asset_tag = tags.shift();
+                var data = formData.slice();
+                data.push({name:'asset_tag', value:asset_tag});
+                $.ajax({
+                    url: "{{ route('api.asset.checkinbytag') }}",
+                    type : 'POST',
+                    headers: {
+                        "X-Requested-With": 'XMLHttpRequest',
+                        "X-CSRF-TOKEN": $('meta[name=\"csrf-token\"]').attr('content')
+                    },
+                    dataType : 'json',
+                    data : data,
+                    success : function (data) {
+                        if (data.status == 'success') {
+                            $('#checkedin tbody').prepend("<tr class='success'><td>" + data.payload.asset_tag + "</td><td>" + data.payload.model + "</td><td>" + data.payload.model_number + "</td><td>" + data.messages + "</td><td><i class='fas fa-check text-success'></i></td></tr>");
+                            @if ($user?->enable_sounds)
+                            var audio = new Audio('{{ config('app.url') }}/sounds/success.mp3');
+                            audio.play()
+                            @endif
+                            incrementOnSuccess();
+                        } else {
+                            handlecheckinFail(data);
+                        }
+                    },
+                    error: function (data) {
+                        handlecheckinFail(data);
+                    },
+                    complete: function(){
+                        sendNextTag();
+                    }
+                });
+            }
 
-            });
+            sendNextTag();
+
+            $('#asset_tags').val(null).trigger('change');
 
             return false;
         });

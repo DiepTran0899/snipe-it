@@ -270,7 +270,22 @@
                                             >
                                             <p class="help-block">{{ trans('admin/settings/general.qr_help') }}</p>
                                         @endif
-                                        {!! $errors->first('qr_text', '<span class="alert-msg" aria-hidden="true"><i class="fas fa-times" aria-hidden="true"></i> :message</span>') !!}
+                                {!! $errors->first('qr_text', '<span class="alert-msg" aria-hidden="true"><i class="fas fa-times" aria-hidden="true"></i> :message</span>') !!}
+                                   </div>
+                               </div>
+                                <div class="form-group">
+                                    <div class="col-md-3 text-right">
+                                    <label for="labels_qr_value" class="control-label">{{ trans('admin/settings/general.qr_value') }}</label>
+                                    </div>
+                                    <div class="col-md-7">
+                                        <x-input.select
+                                            name="labels_qr_value"
+                                            id="labels_qr_value"
+                                            :options="['none'=>trans('admin/settings/general.none'),'asset_tag'=>trans('admin/hardware/form.tag'),'asset_id'=>trans('admin/settings/general.asset_id')]"
+                                            :selected="old('labels_qr_value', $setting->labels_qr_value)"
+                                            style="width:100%"
+                                            aria-label="labels_qr_value"
+                                        />
                                     </div>
                                 </div>
 

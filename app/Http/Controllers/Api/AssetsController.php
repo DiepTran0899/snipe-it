@@ -618,6 +618,40 @@ class AssetsController extends Controller
         return (new SelectlistTransformer)->transformSelectlist($assets);
     }
 
+    /**
+     * Returns a list of asset tags for select2 components
+     */
+    public function taglist(Request $request): array
+    {
+        $assets = Asset::select(['asset_tag'])
+            ->whereNotNull('asset_tag');
+
+        if ($request->filled('search')) {
+            $assets->where('asset_tag', 'LIKE', '%' . $request->input('search') . '%');
+        }
+
+        $assets = $assets->orderBy('asset_tag', 'ASC')->paginate(50);
+
+        $items = [];
+        foreach ($assets as $asset) {
+            $items[] = [
+                'id' => $asset->asset_tag,
+                'text' => $asset->asset_tag,
+            ];
+        }
+
+        return [
+            'results' => $items,
+            'pagination' => [
+                'more' => ($assets->currentPage() >= $assets->lastPage()) ? false : true,
+                'per_page' => $assets->perPage(),
+            ],
+            'total_count' => $assets->total(),
+            'page' => $assets->currentPage(),
+            'page_count' => $assets->lastPage(),
+        ];
+    }
+
 
     /**
      * Accepts a POST request to create a new asset

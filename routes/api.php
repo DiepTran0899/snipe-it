@@ -442,10 +442,16 @@ Route::group(['prefix' => 'v1', 'middleware' => ['api', 'api-throttle:api']], fu
 
         Route::get('selectlist',
             [
-                Api\AssetsController::class, 
+                Api\AssetsController::class,
                 'selectlist'
             ]
         )->name('assets.selectlist');
+
+        Route::get('taglist', [
+                Api\AssetsController::class,
+                'taglist'
+            ]
+        )->name('api.assets.taglist');
 
         Route::get('{asset_id}/licenses',
             [

@@ -27,17 +27,8 @@
                     <div class="box-body">
                     {{csrf_field()}}
 
-                    <!-- Next Audit -->
-                        <div class="form-group {{ $errors->has('asset_tag') ? 'error' : '' }}">
-                            <label for="asset_tag" class="col-md-3 control-label" id="audit_tag">{{ trans('general.asset_tag') }}</label>
-                            <div class="col-md-9">
-                                <div class="input-group date col-md-11 required" data-date-format="yyyy-mm-dd">
-                                    <input type="text" class="form-control" name="asset_tag" id="asset_tag" required value="{{ old('asset_tag') }}">
-
-                                </div>
-                                {!! $errors->first('asset_tag', '<span class="alert-msg" aria-hidden="true"><i class="fas fa-times" aria-hidden="true"></i> :message</span>') !!}
-                            </div>
-                        </div>
+                    <!-- Asset Tags -->
+                    @include('partials.forms.edit.asset-tag-select', ['fieldname' => 'asset_tags', 'translated_name' => trans('general.asset_tag'), 'select_id' => 'asset_tags'])
 
 
 
@@ -138,43 +129,50 @@
 
             event.preventDefault();
 
-            var form = $("#audit-form").get(0);
-            var formData = $('#audit-form').serializeArray();
-            var asset_tag = $('#asset_tag').val();
+            var tags = $('#asset_tags').val() || [];
+            formData = formData.filter(function(item){ return item.name !== 'asset_tags[]'; });
 
-            $.ajax({
-                url: "{{ route('api.asset.audit.legacy') }}",
-                type : 'POST',
-                headers: {
-                    "X-Requested-With": 'XMLHttpRequest',
-                    "X-CSRF-TOKEN": $('meta[name="csrf-token"]').attr('content')
-                },
-                dataType : 'json',
-                data : formData,
-                success : function (data) {
-
-                    if (data.status == 'success') {
-                        $('#audited tbody').prepend("<tr class='success'><td>" + data.payload.asset_tag + "</td><td>" + data.messages + "</td><td><i class='fas fa-check text-success' style='font-size:18px;'></i></td></tr>");
-
-                        @if ($user->enable_sounds)
-                        var audio = new Audio('{{ config('app.url') }}/sounds/success.mp3');
-                        audio.play()
-                        @endif
-
-                        incrementOnSuccess();
-                    } else {
-                        handleAuditFail(data, asset_tag);
-                    }
-                    $('input#asset_tag').val('');
-                },
-                error: function (data) {
-                    handleAuditFail(data, asset_tag);
-                },
-                complete: function() {
+            function sendNext() {
+                if(tags.length === 0){
                     $('#audit-loader').hide();
+                    return;
                 }
+                var asset_tag = tags.shift();
+                var data = formData.slice();
+                data.push({name: 'asset_tag', value: asset_tag});
+                $.ajax({
+                    url: "{{ route('api.asset.audit.legacy') }}",
+                    type : 'POST',
+                    headers: {
+                        "X-Requested-With": 'XMLHttpRequest',
+                        "X-CSRF-TOKEN": $('meta[name="csrf-token"]').attr('content')
+                    },
+                    dataType : 'json',
+                    data : data,
+                    success : function (data) {
+                        if (data.status == 'success') {
+                            $('#audited tbody').prepend("<tr class='success'><td>" + data.payload.asset_tag + "</td><td>" + data.messages + "</td><td><i class='fas fa-check text-success' style='font-size:18px;'></i></td></tr>");
+                            @if ($user->enable_sounds)
+                            var audio = new Audio('{{ config('app.url') }}/sounds/success.mp3');
+                            audio.play()
+                            @endif
+                            incrementOnSuccess();
+                        } else {
+                            handleAuditFail(data, asset_tag);
+                        }
+                    },
+                    error: function (data) {
+                        handleAuditFail(data, asset_tag);
+                    },
+                    complete: function() {
+                        sendNext();
+                    }
+                });
+            }
 
-            });
+            sendNext();
+
+            $('#asset_tags').val(null).trigger('change');
 
             return false;
         });

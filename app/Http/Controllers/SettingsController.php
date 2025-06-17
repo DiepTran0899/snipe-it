@@ -794,6 +794,7 @@ class SettingsController extends Controller
         $setting->alt_barcode_enabled = $request->input('alt_barcode_enabled', '0');
         //QR-Code
         $setting->qr_text = $request->input('qr_text');
+        $setting->labels_qr_value = $request->input('labels_qr_value', 'asset_tag');
 
         if ($request->filled('labels_display_name')) {
             $setting->labels_display_name = 1;

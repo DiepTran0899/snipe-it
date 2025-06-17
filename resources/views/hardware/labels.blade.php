@@ -138,9 +138,13 @@ $qr_size = ($settings->alt_barcode_enabled=='1') && ($settings->label2_1d_type!=
                     N: {{ $asset->name }}
                 </div>
             @endif
-            @if (($settings->labels_display_tag=='1') && ($asset->asset_tag!=''))
+            @if ($settings->labels_qr_value == 'asset_tag' && $asset->asset_tag != '')
                 <div class="pull-left">
                     T: {{ $asset->asset_tag }}
+                </div>
+            @elseif ($settings->labels_qr_value == 'asset_id')
+                <div class="pull-left">
+                    ID: {{ $asset->id }}
                 </div>
             @endif
             @if (($settings->labels_display_serial=='1') && ($asset->serial!=''))

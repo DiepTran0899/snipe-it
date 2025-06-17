@@ -7,6 +7,10 @@ use Illuminate\Http\RedirectResponse;
 use \Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Http\Request;
+use App\Models\AssetModel;
+use App\Models\Location;
+use App\Models\Statuslabel;
+use App\Models\User;
 
 
 /**
@@ -59,7 +63,7 @@ class DashboardController extends Controller
     public function custom(Request $request) : View
     {
         // eager load relations for status, model, location and assignee
-        $query = \App\Models\Asset::query()->with(['assetstatus', 'model', 'location', 'assignedTo']);
+        $query = \App\Models\Asset::with(['assetstatus', 'model', 'location', 'assignedTo']);
 
         if ($request->filled('status_id')) {
             $query->where('status_id', $request->status_id);
@@ -69,20 +73,41 @@ class DashboardController extends Controller
             $query->where('model_id', $request->model_id);
         }
 
-        if ($request->filled('name')) {
-            $query->where('name', 'like', '%'.$request->name.'%');
+        if ($request->filled('location_id')) {
+            $query->where('location_id', $request->location_id);
         }
 
-        $assets = $query->limit(100)->get();
-
-        $statusCounts = [];
-        foreach ($assets as $asset) {
-            $name = optional($asset->assetstatus)->name ?? 'Unknown';
-            $statusCounts[$name] = ($statusCounts[$name] ?? 0) + 1;
+        if ($request->filled('user_id')) {
+            $query->where('assigned_type', User::class)
+                ->where('assigned_to', $request->user_id);
         }
 
-        return view('dashboard_custom')
-            ->with('assets', $assets)
-            ->with('statusCounts', $statusCounts);
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                    ->orWhere('serial', 'like', "%{$search}%");
+            });
+        }
+
+        $assets = $query->orderBy('name')->limit(100)->get();
+
+        $statusCounts = $assets->groupBy(fn ($a) => optional($a->assetstatus)->name ?? 'Unknown')
+            ->map->count()
+            ->toArray();
+
+        $statuses = Statuslabel::orderBy('name')->pluck('name', 'id');
+        $models = AssetModel::orderBy('name')->pluck('name', 'id');
+        $locations = Location::orderBy('name')->pluck('name', 'id');
+        $users = User::orderBy('first_name')->pluck('first_name', 'id');
+
+        return view('dashboard_custom', compact(
+            'assets',
+            'statusCounts',
+            'statuses',
+            'models',
+            'locations',
+            'users'
+        ));
     }
 }

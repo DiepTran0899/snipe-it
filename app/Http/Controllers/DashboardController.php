@@ -58,7 +58,8 @@ class DashboardController extends Controller
      */
     public function custom(Request $request) : View
     {
-        $query = \App\Models\Asset::query()->with(['statuslabel', 'model', 'location', 'assignedUser']);
+        // eager load relations for status, model, location and assignee
+        $query = \App\Models\Asset::query()->with(['assetstatus', 'model', 'location', 'assignedTo']);
 
         if ($request->filled('status_id')) {
             $query->where('status_id', $request->status_id);
@@ -76,11 +77,8 @@ class DashboardController extends Controller
 
         $statusCounts = [];
         foreach ($assets as $asset) {
-            $name = optional($asset->statuslabel)->name ?? 'Unknown';
-            if (!isset($statusCounts[$name])) {
-                $statusCounts[$name] = 0;
-            }
-            $statusCounts[$name]++;
+            $name = optional($asset->assetstatus)->name ?? 'Unknown';
+            $statusCounts[$name] = ($statusCounts[$name] ?? 0) + 1;
         }
 
         return view('dashboard_custom')

@@ -23,7 +23,7 @@ Custom Dashboard
             <select name="status_id" id="status_id" class="form-control">
               <option value="">All</option>
               @foreach(App\Models\Statuslabel::all() as $status)
-                <option value="{{ $status->id }}" {{ request('status_id')==$status->id ? 'selected' : '' }}>{{ $status->name }}</option>
+                <option value="{{ $status->id }}" {{ request('status_id') == $status->id ? 'selected' : '' }}>{{ $status->name }}</option>
               @endforeach
             </select>
           </div>
@@ -45,7 +45,7 @@ Custom Dashboard
               <tr>
                 <td>{{ $asset->name }}</td>
                 <td>{{ $asset->serial }}</td>
-                <td>{{ optional($asset->statuslabel)->name }}</td>
+                <td>{{ optional($asset->assetstatus)->name }}</td>
               </tr>
             @empty
               <tr><td colspan="3">No assets found.</td></tr>

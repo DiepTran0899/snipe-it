@@ -173,6 +173,7 @@ class ConsumablePresenter extends Presenter
                 'title' => trans('table.actions'),
                 'visible' => true,
                 'formatter' => 'consumablesActionsFormatter',
+                'printIgnore' => true,
             ],
         ];
 

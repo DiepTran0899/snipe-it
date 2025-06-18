@@ -65,13 +65,13 @@
     @if ($snipeSettings->brand == '3')
 
         <h2>
-            @if ($snipeSettings->logo!='')
+            @if ($snipeSettings->acceptance_pdf_logo!='')
                 <img class="print-logo" src="{{ config('app.url') }}/uploads/{{ $snipeSettings->acceptance_pdf_logo }}">
             @endif
             {{ $snipeSettings->site_name }}
         </h2>
     @elseif ($snipeSettings->brand == '2')
-        @if ($snipeSettings->logo!='')
+        @if ($snipeSettings->acceptance_pdf_logo!='')
             <img class="print-logo" src="{{ config('app.url') }}/uploads/{{ $snipeSettings->acceptance_pdf_logo }}">
         @endif
     @else

@@ -22,6 +22,7 @@ class AssetPresenter extends Presenter
                 'field' => 'checkbox',
                 'checkbox' => true,
                 'titleTooltip' => trans('general.select_all_none'),
+                'printIgnore' => true,
             ], [
                 'field' => 'id',
                 'searchable' => false,
@@ -346,6 +347,7 @@ class AssetPresenter extends Presenter
             'title' => trans('general.checkin').'/'.trans('general.checkout'),
             'visible' => true,
             'formatter' => 'hardwareInOutFormatter',
+            'printIgnore' => true,
         ];
 
         $layout[] = [
@@ -355,6 +357,7 @@ class AssetPresenter extends Presenter
             'switchable' => false,
             'title' => trans('table.actions'),
             'formatter' => 'hardwareActionsFormatter',
+            'printIgnore' => true,
         ];
 
         return json_encode($layout);
@@ -422,6 +425,7 @@ class AssetPresenter extends Presenter
                 'switchable' => false,
                 'title' => trans('table.actions'),
                 'formatter' => 'accessoriesInOutFormatter',
+                'printIgnore' => true,
             ],
         ];
 

@@ -9,7 +9,6 @@
 {{-- Account page content --}}
 @section('content')
 
-
 @if ($acceptances = \App\Models\CheckoutAcceptance::forUser(Auth::user())->pending()->count())
   <div class="row">
     <div class="col-md-12">
@@ -22,6 +21,31 @@
           </a>
           </strong>
       </div>
+    </div>
+  </div>
+@endif
+
+{{-- Manager View Dropdown --}}
+@if (isset($settings) && $settings->manager_view_enabled && isset($subordinates) && $subordinates->count() > 1)
+  <div class="row hidden-print" style="margin-bottom: 15px;">
+    <div class="col-md-12">
+      <form method="GET" action="{{ route('view-assets') }}" class="pull-right" role="form">
+        <div class="form-group" style="margin-bottom: 0;">
+          <label for="user_id" class="control-label" style="margin-right: 10px;">
+            {{ trans('general.view_user_assets') }}:
+          </label>
+          <select name="user_id" id="user_id" class="form-control select2" onchange="this.form.submit()" style="width: 250px; display: inline-block;">
+            @foreach ($subordinates as $subordinate)
+              <option value="{{ $subordinate->id }}" {{ (int)$selectedUserId === (int)$subordinate->id ? ' selected' : '' }}>
+                {{ $subordinate->present()->fullName() }}
+                @if ($subordinate->id == auth()->id())
+                  ({{ trans('general.me') }})
+                @endif
+              </option>
+            @endforeach
+          </select>
+        </div>
+      </form>
     </div>
   </div>
 @endif

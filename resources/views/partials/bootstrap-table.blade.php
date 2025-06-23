@@ -876,7 +876,7 @@
     }
     function downloadFormatter(value) {
         if (value) {
-            return '<a href="' + value + '" target="_blank"><x-icon type="download" /></a>';
+            return '<a href="' + value + '" class="btn btn-sm btn-default"><x-icon type="download" /></a>';
         }
     }
 

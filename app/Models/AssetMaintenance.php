@@ -267,6 +267,21 @@ class AssetMaintenance extends Model implements ICompanyableChild
     }
 
     /**
+     * Query builder scope to order on status label name
+     *
+     * @param  \Illuminate\Database\Query\Builder  $query  Query builder instance
+     * @param  text                              $order         Order
+     *
+     * @return \Illuminate\Database\Query\Builder          Modified query builder
+     */
+    public function scopeOrderLocationName($query, $order)
+    {
+        return $query->join('assets as maintained_asset', 'asset_maintenances.asset_id', '=', 'maintained_asset.id')
+            ->leftjoin('locations as maintained_asset_location', 'maintained_asset_location.id', '=', 'maintained_asset.location_id')
+            ->orderBy('maintained_asset_location.name', $order);
+    }
+
+    /**
      * Query builder scope to order on the user that created it
      */
     public function scopeOrderByCreatedBy($query, $order)

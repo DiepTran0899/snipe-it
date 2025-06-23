@@ -763,7 +763,7 @@
                     data-sort-order="asc"
                     data-sort-name="name"
                     class="table table-striped snipe-table table-hover"
-                    data-url="{{route('api.user.eulas', $user->id)}}"
+                    data-url="{{ route('api.self.eulas') }}"
                     data-export-options='{
                     "fileName": "export-eula-{{ str_slug($user->username) }}-{{ date('Y-m-d') }}",
                     "ignoreColumn": ["actions","image","change","checkbox","checkincheckout","delete","purchasecost", "icon"]
@@ -779,8 +779,7 @@
                 <th data-visible="true" data-field="item.name">{{ trans('general.item') }}</th>
                 <th data-visible="true" data-field="created_at" data-sortable="true" data-formatter="dateDisplayFormatter">{{ trans('general.accepted_date') }}</th>
                 <th data-field="note">{{ trans('general.notes') }}</th>
-                <th data-field="signature_file" data-visible="false"  data-formatter="imageFormatter">{{ trans('general.signature') }}</th>
-                <th data-field="file" data-formatter="fileUploadFormatter">{{ trans('general.download') }}</th>
+                <th data-field="url" data-formatter="downloadFormatter">{{ trans('general.download') }}</th>
               </tr>
               </thead>
             </table>

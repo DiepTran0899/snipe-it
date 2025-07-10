@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Http\Traits\UniqueUndeletedTrait;
 use App\Models\Traits\Searchable;
+use App\Models\Traits\HasUploads;
 use App\Presenters\Presentable;
 use Illuminate\Auth\Authenticatable;
 use Illuminate\Auth\Passwords\CanResetPassword;
@@ -18,6 +19,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\Access\Authorizable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Str;
 use Laravel\Passport\HasApiTokens;
 use Watson\Validating\ValidatingTrait;
 use Illuminate\Database\Eloquent\Casts\Attribute;
@@ -26,9 +28,10 @@ class User extends SnipeModel implements AuthenticatableContract, AuthorizableCo
 {
     use HasFactory;
     use CompanyableTrait;
+    use HasUploads;
 
     protected $presenter = \App\Presenters\UserPresenter::class;
-    use SoftDeletes, ValidatingTrait;
+    use SoftDeletes, ValidatingTrait, Loggable;
     use Authenticatable, Authorizable, CanResetPassword, HasApiTokens;
     use UniqueUndeletedTrait;
     use Notifiable;
@@ -168,6 +171,15 @@ class User extends SnipeModel implements AuthenticatableContract, AuthorizableCo
     }
 
 
+    public function isAvatarExternal() {
+        // Check if it's a google avatar or some external avatar
+        if (Str::startsWith($this->avatar, ['http://', 'https://'])) {
+            return true;
+        }
+
+        return false;
+    }
+
     /**
      * Internally check the user permission for the given section
      *
@@ -237,7 +249,7 @@ class User extends SnipeModel implements AuthenticatableContract, AuthorizableCo
 
 
     /**
-     * Checks if the can edit their own profile
+     * Checks if the user can edit their own profile
      *
      * @author A. Gianotto <snipe@snipe.net>
      * @since [v6.3.4]
@@ -520,21 +532,7 @@ class User extends SnipeModel implements AuthenticatableContract, AuthorizableCo
         return $this->hasMany(\App\Models\Asset::class, 'id')->withTrashed();
     }
 
-    /**
-     * Establishes the user -> uploads relationship
-     *
-     * @author A. Gianotto <snipe@snipe.net>
-     * @since [v3.0]
-     * @return \Illuminate\Database\Eloquent\Relations\Relation
-     */
-    public function uploads()
-    {
-        return $this->hasMany(\App\Models\Actionlog::class, 'item_id')
-            ->where('item_type', self::class)
-            ->where('action_type', '=', 'uploaded')
-            ->whereNotNull('filename')
-            ->orderBy('created_at', 'desc');
-    }
+
 
     /**
      * Establishes the user -> acceptances relationship

@@ -130,4 +130,19 @@ class LicenseSeat extends SnipeModel implements ICompanyableChild
             ->whereNotNull('license_seats.assigned_to')
             ->orderBy('license_user_dept.name', $order);
     }
+
+
+    public function scopeByAssigned($query)
+    {
+
+        return $query->where(function ($query)  {
+            $query->whereNotNull('assigned_to')
+                ->orWhere(function($query)
+                {
+                    $query->whereNotNull('asset_id');
+                });
+        });
+
+    }
+
 }

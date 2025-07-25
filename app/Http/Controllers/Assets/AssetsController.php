@@ -227,7 +227,10 @@ class AssetsController extends Controller
             }
         }
 
-        session()->put(['redirect_option' => $request->get('redirect_option'), 'checkout_to_type' => $request->get('checkout_to_type')]);
+        session()->put(['redirect_option' => $request->get('redirect_option'),
+                       'checkout_to_type' => $request->get('checkout_to_type'),
+                       'other_redirect' =>  'model' ]);
+
 
 
         if ($successes) {

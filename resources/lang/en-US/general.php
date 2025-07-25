@@ -4,6 +4,7 @@ return [
     '2FA_reset'             => '2FA reset',
     'accessories'			=> 'Accessories',
     'activated'			    => 'Activated',
+    'login_status'		    => 'Login Status',
     'accepted_date'         => 'Date Accepted',
     'accessory'				=> 'Accessory',
     'accessory_report'		=> 'Accessory Report',
@@ -316,6 +317,7 @@ return [
     'upload_filetypes_help' => 'Allowed filetypes are: :allowed_filetypes. Max upload size allowed is :size.',
     'uploaded'              => 'Uploaded',
     'user'					=> 'User',
+    'password'				=> 'Password',
     'accepted'			    => 'accepted',
     'declined'			    => 'declined',
     'declined_note'         => 'Declined Notes',
@@ -476,7 +478,7 @@ return [
     'update_existing_values'    => 'Update Existing Values?',
     'auto_incrementing_asset_tags_disabled_so_tags_required' => 'Generating auto-incrementing asset tags is disabled so all rows need to have the "Asset Tag" column populated.',
     'auto_incrementing_asset_tags_enabled_so_now_assets_will_be_created' => 'Note: Generating auto-incrementing asset tags is enabled so assets will be created for rows that do not have "Asset Tag" populated. Rows that do have "Asset Tag" populated will be updated with the provided information.',
-    'send_welcome_email_to_users'   => ' Send Welcome Email for new Users?',
+    'send_welcome_email_to_users'   => ' Send Welcome Email for new Users? Note that only users with a valid email address and who are marked as activated in your import file will received a welcome.',
     'send_email'                => 'Send Email',
     'call'                      => 'Call number',
     'back_before_importing'     => 'Backup before importing?',
@@ -596,6 +598,7 @@ return [
     'version' => 'Version',
     'build' => 'build',
     'footer_credit' => '<a target="_blank" href="https://snipeitapp.com" rel="noopener">Snipe-IT</a> is open source software, made with <i class="fa fa-heart" aria-hidden="true" style="color: #a94442; font-size: 10px" /></i><span class="sr-only">love</span> by <a href="https://bsky.app/profile/snipeitapp.com" rel="noopener">@snipeitapp.com</a>.',
+    'set_password' => 'Set a Password',
 
 // Add form placeholders here
     'placeholders' => [

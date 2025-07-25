@@ -13,15 +13,8 @@ use App\Models\Company;
 use App\Models\Group;
 use App\Models\Setting;
 use App\Models\User;
-use App\Notifications\WelcomeNotification;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Password;
-use Illuminate\Support\Facades\Storage;
-use Redirect;
-use Str;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use App\Notifications\CurrentInventory;
 
@@ -130,7 +123,7 @@ class UsersController extends Controller
         }
         $user->permissions = json_encode($permissions_array);
 
-        // we have to invoke the
+        // we have to invoke the form request here to handle image uploads
         app(ImageUploadRequest::class)->handleImages($user, 600, 'avatar', 'avatars', 'avatar');
 
         session()->put(['redirect_option' => $request->get('redirect_option')]);
@@ -140,18 +133,6 @@ class UsersController extends Controller
                 $user->groups()->sync($request->input('groups'));
             } else {
                 $user->groups()->sync([]);
-            }
-
-            if (($request->input('email_user') == 1) && ($request->filled('email'))) {
-                // Send the credentials through email
-                $data = [];
-                $data['email'] = e($request->input('email'));
-                $data['username'] = e($request->input('username'));
-                $data['first_name'] = e($request->input('first_name'));
-                $data['last_name'] = e($request->input('last_name'));
-                $data['password'] = e($request->input('password'));
-
-                $user->notify(new WelcomeNotification($data));
             }
 
             return Helper::getRedirectOption($request, $user->id, 'Users')
@@ -248,20 +229,14 @@ class UsersController extends Controller
             }
         }
 
-        // Only save groups if the user is a superuser
-        if (auth()->user()->isSuperUser()) {
-            $user->groups()->sync($request->input('groups'));
-        }
 
         // Update the user fields
-        $user->username = trim($request->input('username'));
-        $user->email = trim($request->input('email'));
+
         $user->first_name = $request->input('first_name');
         $user->last_name = $request->input('last_name');
         $user->two_factor_optin = $request->input('two_factor_optin') ?: 0;
         $user->locale = $request->input('locale');
         $user->employee_num = $request->input('employee_num');
-        $user->activated = $request->input('activated', 0);
         $user->jobtitle = $request->input('jobtitle', null);
         $user->phone = $request->input('phone');
         $user->location_id = $request->input('location_id', null);
@@ -273,8 +248,6 @@ class UsersController extends Controller
         $user->city = $request->input('city', null);
         $user->state = $request->input('state', null);
         $user->country = $request->input('country', null);
-        // if a user is editing themselves we should always keep activated true
-        $user->activated = $request->input('activated', $request->user()->is($user) ? 1 : 0);
         $user->zip = $request->input('zip', null);
         $user->remote = $request->input('remote', 0);
         $user->vip = $request->input('vip', 0);
@@ -283,30 +256,49 @@ class UsersController extends Controller
         $user->end_date = $request->input('end_date', null);
         $user->autoassign_licenses = $request->input('autoassign_licenses', 0);
 
+        // Set this here so that we can overwrite it later if the user is an admin or superadmin
+        $user->activated = $request->input('activated', auth()->user()->is($user) ? 1 : $user->activated);
+
+
         // Update the location of any assets checked out to this user
         Asset::where('assigned_type', User::class)
             ->where('assigned_to', $user->id)
             ->update(['location_id' => $request->input('location_id', null)]);
 
-        // Do we want to update the user password?
-        if ($request->filled('password')) {
-            $user->password = bcrypt($request->input('password'));
+        // check for permissions related fields and only set them if the user has permission to edit them
+        if (auth()->user()->can('canEditAuthFields', $user) && auth()->user()->can('editableOnDemo')) {
+
+            $user->username = trim($request->input('username'));
+            $user->email = trim($request->input('email'));
+            $user->activated = $request->input('activated', $request->user()->is($user) ? 1 : 0);
+
+            // Do we want to update the user password?
+            if ($request->filled('password')) {
+                $user->password = bcrypt($request->input('password'));
+            }
+
+            $permissions_array = $request->input('permission');
+
+            // Strip out the superuser permission if the user isn't a superadmin
+            if (! auth()->user()->isSuperUser()) {
+                unset($permissions_array['superuser']);
+                $permissions_array['superuser'] = $orig_superuser;
+            }
+
+            $user->permissions = json_encode($permissions_array);
+
+            // Only save groups if the user is a superuser
+            if (auth()->user()->isSuperUser()) {
+                $user->groups()->sync($request->input('groups'));
+            }
         }
+
 
         // Update the location of any assets checked out to this user
         Asset::where('assigned_type', User::class)
             ->where('assigned_to', $user->id)
             ->update(['location_id' => $user->location_id]);
 
-        $permissions_array = $request->input('permission');
-
-        // Strip out the superuser permission if the user isn't a superadmin
-        if (! auth()->user()->isSuperUser()) {
-            unset($permissions_array['superuser']);
-            $permissions_array['superuser'] = $orig_superuser;
-        }
-
-        $user->permissions = json_encode($permissions_array);
 
         // Handle uploaded avatar
         app(ImageUploadRequest::class)->handleImages($user, 600, 'avatar', 'avatars', 'avatar');

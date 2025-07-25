@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\Schema;
 /**
  * Model for Companies.
  *
- * @version    v1.8
+ * @version v1.8
  */
 final class Company extends SnipeModel
 {
@@ -28,19 +28,19 @@ final class Company extends SnipeModel
         'name' => 'required|min:1|max:255|unique:companies,name',
         'fax' => 'min:7|max:35|nullable',
         'phone' => 'min:7|max:35|nullable',
-		'email' => 'email|max:150|nullable',
+    'email' => 'email|max:150|nullable',
     ];
 
     protected $presenter = \App\Presenters\CompanyPresenter::class;
     use Presentable;
 
     /**
-    * Whether the model should inject it's identifier to the unique
-    * validation rules before attempting validation. If this property
-    * is not set in the model it will default to true.
-    *
+     * Whether the model should inject it's identifier to the unique
+     * validation rules before attempting validation. If this property
+     * is not set in the model it will default to true.
+     *
      * @var bool
-    */
+     */
     protected $injectUniqueIdentifier = true;
     use ValidatingTrait;
     use Searchable;
@@ -102,7 +102,7 @@ final class Company extends SnipeModel
      * account the full multiple company support setting
      * and if the current user is a super user.
      *
-     * @param $unescaped_input
+     * @param  $unescaped_input
      * @return int|mixed|string|null
      */
     public static function getIdForCurrentUser($unescaped_input)
@@ -129,7 +129,7 @@ final class Company extends SnipeModel
      * Check to see if the current user should have access to the model.
      * I hate this method and I think it should be refactored.
      *
-     * @param $companyable
+     * @param  $companyable
      * @return bool|void
      */
     public static function isCurrentUserHasAccess($companyable)
@@ -192,7 +192,7 @@ final class Company extends SnipeModel
      * Checks if company can be deleted
      *
      * @author [Dan Meltzer] [<dmeltzer.devel@gmail.com>]
-     * @since [v5.0]
+     * @since  [v5.0]
      * @return bool
      */
     public function isDeletable()
@@ -209,7 +209,7 @@ final class Company extends SnipeModel
     }
 
     /**
-     * @param $unescaped_input
+     * @param  $unescaped_input
      * @return int|mixed|string|null
      */
     public static function getIdForUser($unescaped_input)
@@ -265,9 +265,9 @@ final class Company extends SnipeModel
      * @todo - refactor that trait to handle the user's model as well.
      *
      * @author [A. Gianotto] <snipe@snipe.net>
-     * @param $query
-     * @param $column
-     * @param $table_name
+     * @param  $query
+     * @param  $column
+     * @param  $table_name
      * @return mixed
      */
     public static function scopeCompanyables($query, $column = 'company_id', $table_name = null)
@@ -327,8 +327,8 @@ final class Company extends SnipeModel
      * This gets invoked by CompanyableChildScope, but I'm not sure what it does.
      *
      * @author [A. Gianotto] <snipe@snipe.net>
-     * @param array $companyable_names
-     * @param $query
+     * @param  array $companyable_names
+     * @param  $query
      * @return mixed
      */
     public static function scopeCompanyableChildren(array $companyable_names, $query)
@@ -343,13 +343,15 @@ final class Company extends SnipeModel
                 static::scopeCompanyablesDirectly($q);
             };
 
-            $q = $query->where(function ($q) use ($companyable_names, $f) {
-                $q2 = $q->whereHas($companyable_names[0], $f);
+            $q = $query->where(
+                function ($q) use ($companyable_names, $f) {
+                    $q2 = $q->whereHas($companyable_names[0], $f);
 
-                for ($i = 1; $i < count($companyable_names); $i++) {
-                    $q2 = $q2->orWhereHas($companyable_names[$i], $f);
+                    for ($i = 1; $i < count($companyable_names); $i++) {
+                        $q2 = $q2->orWhereHas($companyable_names[$i], $f);
+                    }
                 }
-            });
+            );
 
             return $q;
         }

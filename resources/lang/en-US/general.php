@@ -536,8 +536,6 @@ return [
     'serial_number'        => 'Serial Number',
     'item_notes' => ':item Notes',
     'item_name_var' => ':item Name',
-    'light_mode' => 'Light Mode',
-    'dark_mode' => 'Dark Mode',
     'error_user_company' => 'Checkout target company and asset company do not match',
     'error_user_company_multiple' => 'One or more of the checkout target company and asset company do not match',
     'error_user_company_accept_view' => 'An Asset assigned to you belongs to a different company so you can\'t accept nor deny it, please check with your manager',
@@ -736,5 +734,25 @@ return [
 
     'months_plural' => '1 month|:count months',
 
+    // QR Code Scanner translations
+    'scan_or_type' => 'Scan QR code or type asset tag',
+    'quickscan_instructions' => 'Scan QR codes with your camera or manually enter asset tags. Press Enter to add, then click Audit to submit all scanned tags at once.',
+    'scan_assets' => 'Scan Assets',
+    'scan_assets_help' => 'Scan QR codes or enter asset tags to quickly add assets to checkout. Scanned assets will automatically be added to the selection above.',
+    'scanned_assets' => 'Scanned Assets',
+    'asset_not_found' => 'Asset not found',
+    'start_scanner' => 'Start Camera',
+    'stop_scanner' => 'Stop Camera',
+    'scanned_tags' => 'Scanned Tags',
+    'select_camera' => 'Select Camera',
+    'detecting_cameras' => 'Detecting cameras...',
+    'camera_ready' => 'Camera detected and ready',
+    'no_camera_found' => 'No camera found. Grant camera permission and try again.',
+    'using_default_camera' => 'Using default camera',
+    'scanner_running' => 'Scanner is running',
+    'scanner_active' => 'Scanner is active',
+    'point_camera_qr' => 'Point your camera at a QR code',
+    'scanner_library_failed' => 'Scanner library failed to load. Check Content Security Policy (CSP) settings or try again.',
+    'camera' => 'Camera',
 
 ];

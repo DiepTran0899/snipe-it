@@ -14,6 +14,101 @@
         .input-group {
             padding-left: 0px !important;
         }
+
+        /* Responsive scanner container */
+        #scanner {
+            width: 100%;
+            max-width: 500px;
+            margin: 10px auto;
+            background: #f5f5f5;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        #scanner video {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        /* Mobile-first adjustments */
+        @media (max-width: 768px) {
+            #scanner {
+                max-width: 100%;
+            }
+
+            .box-body {
+                padding: 10px !important;
+            }
+
+            #camera-select,
+            #start-scanner,
+            #stop-scanner {
+                width: 100%;
+                margin-bottom: 8px;
+            }
+
+            #scanner-status {
+                font-size: 0.85em;
+                padding: 8px;
+                background: #f0f0f0;
+                border-radius: 3px;
+                margin-top: 8px;
+            }
+
+            #scanned-list {
+                max-height: 250px;
+                overflow-y: auto;
+            }
+
+            .list-group-item {
+                padding: 8px 10px;
+                font-size: 0.9em;
+            }
+
+            .btn-xs {
+                padding: 3px 6px;
+                font-size: 0.75em;
+            }
+        }
+
+        @media (min-width: 769px) and (max-width: 1024px) {
+            #scanner {
+                max-width: 400px;
+            }
+
+            #camera-select {
+                max-width: 320px;
+            }
+        }
+
+        @media (min-width: 1025px) {
+            #scanner {
+                max-width: 500px;
+            }
+
+            #camera-select {
+                max-width: 350px;
+            }
+        }
+
+        .scanner-button-group {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: 10px;
+        }
+
+        .scanner-button-group .btn {
+            flex: 1;
+            min-width: 120px;
+        }
+
+        @media (max-width: 480px) {
+            .scanner-button-group .btn {
+                min-width: 100%;
+            }
+        }
     </style>
 
 
@@ -32,10 +127,41 @@
                             <label for="asset_tag" class="col-md-3 control-label" id="audit_tag">{{ trans('general.asset_tag') }}</label>
                             <div class="col-md-9">
                                 <div class="input-group date col-md-11 required" data-date-format="yyyy-mm-dd">
-                                    <input type="text" class="form-control" name="asset_tag" id="asset_tag" required value="{{ old('asset_tag') }}">
+                                    <input type="text" class="form-control" name="asset_tag" id="asset_tag" placeholder="{{ trans('general.scan_or_type') }}" value="{{ old('asset_tag') }}" autocomplete="off">
 
                                 </div>
                                 {!! $errors->first('asset_tag', '<span class="alert-msg" aria-hidden="true"><i class="fas fa-times" aria-hidden="true"></i> :message</span>') !!}
+                                <div class="help-block">{{ trans('general.quickscan_instructions') }}</div>
+
+                                <!-- Scanner Controls -->
+                                <div class="scanner-button-group">
+                                    <button type="button" id="start-scanner" class="btn btn-primary btn-sm">
+                                        <i class="fas fa-camera"></i> {{ trans('general.start_scanner') }}
+                                    </button>
+                                    <button type="button" id="stop-scanner" class="btn btn-warning btn-sm" style="display:none">
+                                        <i class="fas fa-stop-circle"></i> {{ trans('general.stop_scanner') }}
+                                    </button>
+                                </div>
+
+                                <!-- Camera selector (toggle buttons) -->
+                                <div id="scanner-controls" style="margin-top: 8px; display: none;">
+                                    <label class="control-label" style="display: block; margin-bottom: 8px;">{{ trans('general.select_camera') }}</label>
+                                    <div id="camera-toggle-group" style="display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px;"></div>
+                                    <div id="scanner-status" style="margin-top: 6px; font-size: 0.9em; color: #666;"></div>
+                                </div>
+
+                                <!-- QR Scanner Container -->
+                                <div id="scanner" style="display: none;"></div>
+
+                                <!-- Scanned Tags List -->
+                                <div id="scanned-tags" style="margin-top: 15px; display: none;">
+                                    <label class="control-label" style="display: block; margin-bottom: 8px;">
+                                        <strong>{{ trans('general.scanned_tags') }}</strong>
+                                        <span class="badge badge-primary" id="tag-count">0</span>
+                                    </label>
+                                    <ul id="scanned-list" class="list-group"></ul>
+                                </div>
+
                             </div>
                         </div>
 
@@ -130,55 +256,241 @@
 
 
 @section('moar_scripts')
+    <script src="/js/html5-qrcode.min.js"></script>
     <script nonce="{{ csrf_token() }}">
 
+        // scannedTags holds the list of scanned asset tags to batch submit
+        var scannedTags = [];
+        var html5QrcodeScanner = null;
+
+        function addScannedTag(tag) {
+            tag = jQuery.trim(tag + '');
+            if (!tag) return;
+            if (scannedTags.indexOf(tag) !== -1) return;
+            scannedTags.push(tag);
+            $('#scanned-tags').show();
+            $('#tag-count').text(scannedTags.length);
+            $('#scanned-list').prepend(
+                '<li class="list-group-item d-flex justify-content-between align-items-center">' +
+                '<span>' + $('<div/>').text(tag).html() + '</span>' +
+                '<button type="button" class="btn btn-xs btn-danger remove-tag" data-tag="' + $('<div/>').text(tag).html() + '">&times;</button>' +
+                '</li>'
+            );
+        }
+
+        $(document).on('click', '.remove-tag', function(){
+            var tag = $(this).data('tag');
+            scannedTags = scannedTags.filter(function(t){ return t !== tag; });
+            $(this).closest('li').remove();
+            $('#tag-count').text(scannedTags.length);
+            if (scannedTags.length === 0) {
+                $('#scanned-tags').hide();
+            }
+        });
+
+        $('#start-scanner').on('click', function(){
+            if (typeof Html5Qrcode === 'undefined') {
+                $('#scanner-status').html(
+                    '<div style="color: #d9534f; padding: 10px; background: #f2dede; border-radius: 3px;">' +
+                    '<i class="fas fa-exclamation-triangle"></i> ' +
+                    '{{ trans('general.scanner_library_failed') }}' +
+                    '</div>'
+                );
+                console.error('Html5Qrcode is undefined');
+                return;
+            }
+
+            $('#scanner').show();
+            $('#start-scanner').hide();
+            $('#stop-scanner').show();
+            $('#scanner-controls').show();
+
+            if (!html5QrcodeScanner) {
+                html5QrcodeScanner = new Html5Qrcode("scanner");
+                $('#scanner-status').html('<i class="fas fa-spinner fa-spin"></i> {{ trans('general.detecting_cameras') }}');
+
+                if (Html5Qrcode.getCameras) {
+                    Html5Qrcode.getCameras().then(cameras => {
+                        $('#camera-toggle-group').empty();
+                        if (cameras && cameras.length) {
+                            cameras.forEach(function(cam, idx){
+                                var label = cam.label || ('{{ trans('general.camera') }} ' + (idx+1));
+                                var btnClass = (idx === 0) ? 'btn-info active' : 'btn-default';
+                                var btn = $('<button type="button" class="btn btn-sm ' + btnClass + ' camera-toggle" data-device-id="' + cam.id + '">')
+                                    .html('<i class="fas fa-camera"></i> ' + label);
+                                $('#camera-toggle-group').append(btn);
+                            });
+                            $('#scanner-status').html('<i class="fas fa-check text-success"></i> {{ trans('general.camera_ready') }}');
+                            startScannerWithDevice(cameras[0].id);
+                        } else {
+                            $('#scanner-status').html(
+                                '<div style="color: #d9534f;">' +
+                                '<i class="fas fa-camera-slash"></i> {{ trans('general.no_camera_found') }}' +
+                                '</div>'
+                            );
+                        }
+                    }).catch(err => {
+                        console.error('getCameras error', err);
+                        $('#scanner-status').html(
+                            '<small style="color: #666;">' +
+                            '<i class="fas fa-info-circle"></i> {{ trans('general.using_default_camera') }}' +
+                            '</small>'
+                        );
+                        startScannerWithDevice({ facingMode: "environment" });
+                    });
+                } else {
+                    startScannerWithDevice({ facingMode: "environment" });
+                }
+            } else {
+                html5QrcodeScanner.resume().then(() => {
+                    $('#scanner-status').html('<i class="fas fa-check text-success"></i> {{ trans('general.scanner_running') }}');
+                }).catch(err => {
+                    console.error('Resume failed', err);
+                    $('#scanner-status').html('<div style="color: #d9534f;"><i class="fas fa-times"></i> ' + err.message + '</div>');
+                });
+            }
+        });
+
+        function startScannerWithDevice(deviceId) {
+            if (!html5QrcodeScanner) return;
+            const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+            html5QrcodeScanner.start(deviceId, config,
+                (decodedText, decodedResult) => {
+                    addScannedTag(decodedText);
+                    html5QrcodeScanner.pause();
+                    setTimeout(function(){ html5QrcodeScanner.resume(); }, 700);
+                },
+                (errorMessage) => {
+                    // ignore transient decode errors
+                }
+            ).then(() => {
+                $('#scanner-status').html(
+                    '<i class="fas fa-check text-success"></i> ' +
+                    '{{ trans('general.scanner_active') }} <small style="display: block; margin-top: 4px; color: #999;">{{ trans('general.point_camera_qr') }}</small>'
+                );
+            }).catch(err => {
+                console.error('Unable to start scanner', err);
+                $('#scanner-status').html('<div style="color: #d9534f;"><i class="fas fa-times"></i> ' + err.message + '</div>');
+            });
+        }
+
+        $('#stop-scanner').on('click', function(){
+            if (html5QrcodeScanner) {
+                html5QrcodeScanner.stop().then(() => {
+                    $('#scanner').hide();
+                    $('#start-scanner').show();
+                    $('#stop-scanner').hide();
+                    $('#scanner-controls').hide();
+                    $('#scanner-status').html('');
+                }).catch(err => {
+                    console.error('Error stopping scanner', err);
+                });
+            }
+        });
+
+        // Allow manual entry + Enter to add to list
+        $('#asset_tag').on('keypress', function(e){
+            if (e.which === 13) {
+                e.preventDefault();
+                var v = $(this).val();
+                if (v) {
+                    addScannedTag(v);
+                    $(this).val('');
+                }
+            }
+        });
+
         $("#audit-form").submit(function (event) {
+            event.preventDefault();
             $('#audited-div').show();
             $('#audit-loader').show();
 
-            event.preventDefault();
+            // gather common form fields
+            var baseFormArray = $('#audit-form').serializeArray().filter(function(f){ return f.name !== 'asset_tag'; });
 
-            var form = $("#audit-form").get(0);
-            var formData = $('#audit-form').serializeArray();
-            var asset_tag = $('#asset_tag').val();
+            // determine tags to process: scannedTags first, fall back to single input
+            var tagsToProcess = scannedTags.slice();
+            var single = $('#asset_tag').val();
+            if ((tagsToProcess.length === 0) && single) {
+                tagsToProcess.push(single);
+            }
 
-            $.ajax({
-                url: "{{ route('api.asset.audit.legacy') }}",
-                type : 'POST',
-                headers: {
-                    "X-Requested-With": 'XMLHttpRequest',
-                    "X-CSRF-TOKEN": $('meta[name="csrf-token"]').attr('content')
-                },
-                dataType : 'json',
-                data : formData,
-                success : function (data) {
+            if (tagsToProcess.length === 0) {
+                // nothing to do
+                $('#audit-loader').hide();
+                return false;
+            }
 
-                    if (data.status == 'success') {
-                        $('#audited tbody').prepend("<tr class='success'><td>" + data.payload.asset_tag + "</td><td>" + data.messages + "</td><td><i class='fas fa-check text-success' style='font-size:18px;'></i></td></tr>");
-
-                        @if ($user->enable_sounds)
-                        var audio = new Audio('{{ config('app.url') }}/sounds/success.mp3');
-                        audio.play()
-                        @endif
-
-                        incrementOnSuccess();
-                    } else {
-                        handleAuditFail(data, asset_tag);
-                    }
-                    $('input#asset_tag').val('');
-                },
-                error: function (data) {
-                    handleAuditFail(data, asset_tag);
-                },
-                complete: function() {
+            var i = 0;
+            function processNext() {
+                if (i >= tagsToProcess.length) {
                     $('#audit-loader').hide();
+                    scannedTags = [];
+                    $('#scanned-list').empty();
+                    $('#scanned-tags').hide();
+                    $('#tag-count').text('0');
+                    $('#asset_tag').val('');
+                    return;
                 }
 
-            });
+                var tag = tagsToProcess[i];
+                var data = baseFormArray.slice();
+                data.push({name: 'asset_tag', value: tag});
+
+                $.ajax({
+                    url: "{{ route('api.asset.audit.legacy') }}",
+                    type : 'POST',
+                    headers: {
+                        "X-Requested-With": 'XMLHttpRequest',
+                        "X-CSRF-TOKEN": $('meta[name="csrf-token"]').attr('content')
+                    },
+                    dataType : 'json',
+                    data : data,
+                    success : function (resp) {
+                        if (resp.status == 'success') {
+                            $('#audited tbody').prepend("<tr class='success'><td>" + resp.payload.asset_tag + "</td><td>" + resp.messages + "</td><td><i class='fas fa-check text-success' style='font-size:18px;'></i></td></tr>");
+                            @if ($user->enable_sounds)
+                            var audio = new Audio('{{ config('app.url') }}/sounds/success.mp3');
+                            audio.play()
+                            @endif
+                            incrementOnSuccess();
+                        } else {
+                            handleAuditFail(resp, tag);
+                        }
+                    },
+                    error: function (resp) {
+                        handleAuditFail(resp, tag);
+                    },
+                    complete: function() {
+                        i++;
+                        // small delay so UI can update smoothly when scanning many tags
+                        setTimeout(processNext, 200);
+                    }
+                });
+            }
+
+            processNext();
 
             return false;
         });
 
+        // Camera toggle button handler
+        $(document).on('click', '.camera-toggle', function(){
+            var deviceId = $(this).data('device-id');
+            if (!html5QrcodeScanner) return;
+            
+            // Update active state
+            $('.camera-toggle').removeClass('btn-info active').addClass('btn-default');
+            $(this).removeClass('btn-default').addClass('btn-info active');
+            
+            // Restart scanner with new device
+            html5QrcodeScanner.stop().then(function(){
+                startScannerWithDevice(deviceId);
+            }).catch(function(err){
+                console.error('Stop before restart failed', err);
+                $('#scanner-status').html('<div style="color: #d9534f;"><i class="fas fa-times"></i> ' + err.message + '</div>');
+            });
+        });
         function handleAuditFail (data, asset_tag) {
             @if ($user->enable_sounds)
             var audio = new Audio('{{ config('app.url') }}/sounds/error.mp3');

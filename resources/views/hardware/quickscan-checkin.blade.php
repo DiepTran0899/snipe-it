@@ -6,112 +6,13 @@
     @parent
 @stop
 
+{{-- CSS section --}}
+@push('moar_css')
+    <link rel="stylesheet" href="{{ asset('css/scanner.css') }}">
+@endpush
+
 {{-- Page content --}}
 @section('content')
-
-    <style>
-
-        .input-group {
-            padding-left: 0px !important;
-        }
-
-        /* Responsive scanner container */
-        #scanner {
-            width: 100%;
-            max-width: 500px;
-            margin: 10px auto;
-            background: #f5f5f5;
-            border-radius: 4px;
-            overflow: hidden;
-        }
-
-        #scanner video {
-            width: 100%;
-            height: auto;
-            display: block;
-        }
-
-        /* Mobile-first adjustments */
-        @media (max-width: 768px) {
-            #scanner {
-                max-width: 100%;
-            }
-
-            .box-body {
-                padding: 10px !important;
-            }
-
-            #camera-select,
-            #start-scanner,
-            #stop-scanner {
-                width: 100%;
-                margin-bottom: 8px;
-            }
-
-            #scanner-status {
-                font-size: 0.85em;
-                padding: 8px;
-                background: #f0f0f0;
-                border-radius: 3px;
-                margin-top: 8px;
-            }
-
-            #scanned-list {
-                max-height: 250px;
-                overflow-y: auto;
-            }
-
-            .list-group-item {
-                padding: 8px 10px;
-                font-size: 0.9em;
-            }
-
-            .btn-xs {
-                padding: 3px 6px;
-                font-size: 0.75em;
-            }
-        }
-
-        @media (min-width: 769px) and (max-width: 1024px) {
-            #scanner {
-                max-width: 400px;
-            }
-
-            #camera-select {
-                max-width: 320px;
-            }
-        }
-
-        @media (min-width: 1025px) {
-            #scanner {
-                max-width: 500px;
-            }
-
-            #camera-select {
-                max-width: 350px;
-            }
-        }
-
-        .scanner-button-group {
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
-            margin-top: 10px;
-        }
-
-        .scanner-button-group .btn {
-            flex: 1;
-            min-width: 120px;
-        }
-
-        @media (max-width: 480px) {
-            .scanner-button-group .btn {
-                min-width: 100%;
-            }
-        }
-    </style>
-
-
 
     <div class="row">
     <form method="POST" action="{{ route('hardware/quickscancheckin') }}" accept-charset="UTF-8" class="form-horizontal" role="form" id="checkin-form">
@@ -256,27 +157,64 @@
         var scannedTags = [];
         var html5QrcodeScanner = null;
 
-        function addScannedTag(tag) {
+        // Store both tag and lookup type
+        var scannedTagsWithType = [];
+
+        function addScannedTag(tag, source = 'manual') {
             tag = jQuery.trim(tag + '');
             if (!tag) return;
-            if (scannedTags.indexOf(tag) !== -1) return;
-            scannedTags.push(tag);
+            
+            var lookupType = 'tag'; // default: search by asset_tag
+            var displaySource = '';
+            
+            // Extract from QR code URLs
+            // /hardware/212 → ID 212 (search by ID first)
+            // /ht/24 → Asset Tag 24 (search by asset_tag first)
+            if (tag.includes('http://') || tag.includes('https://')) {
+                var hardwareMatch = tag.match(/\/hardware\/(\d+)(?:\/|$)/);
+                var htMatch = tag.match(/\/ht\/(\w+)(?:\/|$)/);
+                
+                if (hardwareMatch && hardwareMatch[1]) {
+                    tag = hardwareMatch[1];
+                    lookupType = 'id'; // /hardware/ID → search by ID first
+                    displaySource = ' (ID)';
+                    source = 'qr_url';
+                } else if (htMatch && htMatch[1]) {
+                    tag = htMatch[1];
+                    lookupType = 'tag'; // /ht/TAG → search by asset_tag first
+                    displaySource = ' (Tag)';
+                    source = 'qr_url';
+                }
+            }
+            
+            // Check if already scanned
+            var duplicate = scannedTagsWithType.find(function(item) { return item.tag === tag && item.lookupType === lookupType; });
+            if (duplicate) return;
+            
+            scannedTagsWithType.push({ tag: tag, lookupType: lookupType, source: source });
+            scannedTags.push(tag); // Keep for backward compatibility
             $('#scanned-tags').show();
-            $('#tag-count').text(scannedTags.length);
+            $('#tag-count').text(scannedTagsWithType.length);
+            
+            var badgeClass = (lookupType === 'id') ? 'badge-warning' : 'badge-info';
+            var badgeText = (lookupType === 'id') ? '{{ trans("general.numeric_id") }}' : '{{ trans("general.asset_tag") }}';
+            
             $('#scanned-list').prepend(
                 '<li class="list-group-item d-flex justify-content-between align-items-center">' +
-                '<span>' + $('<div/>').text(tag).html() + '</span>' +
-                '<button type="button" class="btn btn-xs btn-danger remove-tag" data-tag="' + $('<div/>').text(tag).html() + '">&times;</button>' +
+                '<span>' + $('<div/>').text(tag).html() + ' <span class="badge ' + badgeClass + '" style="margin-left:8px;">' + badgeText + '</span></span>' +
+                '<button type="button" class="btn btn-xs btn-danger remove-tag" data-tag="' + $('<div/>').text(tag).html() + '" data-lookup-type="' + lookupType + '">&times;</button>' +
                 '</li>'
             );
         }
 
         $(document).on('click', '.remove-tag', function(){
             var tag = $(this).data('tag');
+            var lookupType = $(this).data('lookup-type') || 'tag';
+            scannedTagsWithType = scannedTagsWithType.filter(function(item){ return !(item.tag === tag && item.lookupType === lookupType); });
             scannedTags = scannedTags.filter(function(t){ return t !== tag; });
             $(this).closest('li').remove();
-            $('#tag-count').text(scannedTags.length);
-            if (scannedTags.length === 0) {
+            $('#tag-count').text(scannedTagsWithType.length);
+            if (scannedTagsWithType.length === 0) {
                 $('#scanned-tags').hide();
             }
         });
@@ -419,11 +357,12 @@
             // gather common form fields
             var baseFormArray = $('#checkin-form').serializeArray().filter(function(f){ return f.name !== 'asset_tag'; });
 
-            // determine tags to process: scannedTags first, fall back to single input
-            var tagsToProcess = scannedTags.slice();
+            // determine tags to process: scannedTagsWithType first, fall back to single input
+            var tagsToProcess = scannedTagsWithType.slice();
             var single = $('#asset_tag').val();
             if ((tagsToProcess.length === 0) && single) {
-                tagsToProcess.push(single);
+                // Manual entry defaults to tag lookup
+                tagsToProcess.push({ tag: single, lookupType: 'tag', source: 'manual' });
             }
 
             if (tagsToProcess.length === 0) {
@@ -436,6 +375,7 @@
             function processNext() {
                 if (i >= tagsToProcess.length) {
                     $('#checkin-loader').hide();
+                    scannedTagsWithType = [];
                     scannedTags = [];
                     $('#scanned-list').empty();
                     $('#scanned-tags').hide();
@@ -444,9 +384,10 @@
                     return;
                 }
 
-                var tag = tagsToProcess[i];
+                var tagData = tagsToProcess[i];
                 var data = baseFormArray.slice();
-                data.push({name: 'asset_tag', value: tag});
+                data.push({name: 'asset_tag', value: tagData.tag});
+                data.push({name: 'lookup_type', value: tagData.lookupType}); // Send lookup type
 
                 $.ajax({
                     url: "{{ route('api.asset.checkinbytag') }}",
@@ -468,11 +409,11 @@
 
                             incrementOnSuccess();
                         } else {
-                            handlecheckinFail(resp, tag);
+                            handlecheckinFail(resp, tagData.tag);
                         }
                     },
                     error: function (resp) {
-                        handlecheckinFail(resp, tag);
+                        handlecheckinFail(resp, tagData.tag);
                     },
                     complete: function() {
                         i++;

@@ -1070,7 +1070,8 @@ class AssetsController extends Controller
     }
 
     /**
-     * Checkin an asset by asset tag
+     * Checkin an asset by asset tag or ID
+     * Respects lookup_type parameter to avoid ambiguity when ID and tag differ
      *
      * @author [A. Janes] [<ajanes@adagiohealth.org>]
      * @since [v6.0]
@@ -1081,7 +1082,23 @@ class AssetsController extends Controller
         if (null == $tag && null !== ($request->input('asset_tag'))) {
             $tag = $request->input('asset_tag');
         }
-        $asset = Asset::where('asset_tag', $tag)->first();
+        
+        $lookupType = $request->input('lookup_type', 'tag'); // default: search by asset_tag
+        $asset = null;
+        
+        // Search based on explicit lookup type
+        if ($lookupType === 'id' && is_numeric($tag)) {
+            // From QR URL: search by ID first
+            $asset = Asset::where('id', (int)$tag)->first();
+        } else {
+            // Default or manual entry: search by asset_tag first
+            $asset = Asset::where('asset_tag', $tag)->first();
+            
+            // If not found and numeric, try ID as fallback
+            if (!$asset && is_numeric($tag)) {
+                $asset = Asset::where('id', (int)$tag)->first();
+            }
+        }
 
         if ($asset) {
             return $this->checkin($request, $asset->id);
@@ -1089,7 +1106,7 @@ class AssetsController extends Controller
 
         return response()->json(Helper::formatStandardApiResponse('error', [
             'asset' => e($tag)
-        ], 'Asset with tag ' . e($tag) . ' not found'));
+        ], 'Asset with ' . ($lookupType === 'id' ? 'ID' : 'tag') . ' ' . e($tag) . ' not found'));
     }
 
 
@@ -1108,9 +1125,23 @@ class AssetsController extends Controller
         $settings = Setting::getSettings();
         $dt = Carbon::now()->addMonths($settings->audit_interval)->toDateString();
 
-        // Allow the asset tag to be passed in the payload (legacy method)
+        // Allow the asset tag or ID to be passed in the payload (legacy method)
         if ($request->filled('asset_tag')) {
-            $asset = Asset::where('asset_tag', '=', $request->input('asset_tag'))->first();
+            $tag = $request->input('asset_tag');
+            $lookupType = $request->input('lookup_type', 'tag'); // default: search by asset_tag
+            
+            if ($lookupType === 'id' && is_numeric($tag)) {
+                // From QR URL: search by ID first
+                $asset = Asset::where('id', (int)$tag)->first();
+            } else {
+                // Default or manual entry: search by asset_tag first
+                $asset = Asset::where('asset_tag', '=', $tag)->first();
+                
+                // If not found and numeric, try ID as fallback
+                if (!$asset && is_numeric($tag)) {
+                    $asset = Asset::where('id', (int)$tag)->first();
+                }
+            }
         }
 
         if ($asset) {

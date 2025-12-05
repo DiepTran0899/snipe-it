@@ -100,6 +100,7 @@ return [
     'created_at' 			=> 'Created At',
     'created_by'            => 'Created By',
     'record_created' 		=> 'Record Created',
+    'numeric_id'            => 'Asset ID',
     'updated_at' 			=> 'Updated at',
     'currency'  			=> '$', // this is deprecated
     'currency_text'  		=> 'Currency', //

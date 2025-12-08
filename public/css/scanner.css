@@ -12,18 +12,76 @@
     background: #f5f5f5;
     border-radius: 4px;
     overflow: hidden;
+    position: relative;
+    touch-action: manipulation;
+    border: 2px solid #e0e0e0;
 }
 
 #scanner video {
     width: 100%;
     height: auto;
     display: block;
+    object-fit: cover;
+}
+
+/* Scanner status hint for zoom */
+#scanner-status {
+    font-size: 0.9em;
+    padding: 12px;
+    background: linear-gradient(135deg, #e8f4f8 0%, #f0f8ff 100%);
+    border-radius: 3px;
+    margin-top: 8px;
+    border-left: 4px solid #17a2b8;
+    color: #333;
+}
+
+#scanner-status.error {
+    background: linear-gradient(135deg, #f8e8e8 0%, #ffe8e8 100%);
+    border-left-color: #d9534f;
+    color: #d9534f;
+}
+
+#scanner-status small {
+    display: block;
+    margin-top: 6px;
+    color: #555;
+    font-size: 0.9em;
+    line-height: 1.4;
+}
+
+#scanner-status i {
+    margin-right: 6px;
+}
+
+/* Scanned tags styling */
+#scanned-tags {
+    margin-top: 15px;
+}
+
+#tag-count {
+    font-size: 0.85em;
+    padding: 4px 8px;
+}
+
+.list-group-item {
+    transition: all 0.2s ease;
+}
+
+.list-group-item:hover {
+    background-color: #f9f9f9;
+}
+
+.badge {
+    font-size: 0.75em;
+    font-weight: 600;
+    padding: 4px 8px;
 }
 
 /* Mobile-first adjustments */
 @media (max-width: 768px) {
     #scanner {
         max-width: 100%;
+        height: 350px;
     }
 
     .box-body {
@@ -64,6 +122,7 @@
 @media (min-width: 769px) and (max-width: 1024px) {
     #scanner {
         max-width: 400px;
+        height: 350px;
     }
 
     #camera-select {
@@ -74,6 +133,7 @@
 @media (min-width: 1025px) {
     #scanner {
         max-width: 500px;
+        height: 400px;
     }
 
     #camera-select {
@@ -91,10 +151,34 @@
 .scanner-button-group .btn {
     flex: 1;
     min-width: 120px;
+    font-size: 0.9em;
+}
+
+.scanner-button-group .btn i {
+    margin-right: 4px;
 }
 
 @media (max-width: 480px) {
     .scanner-button-group .btn {
         min-width: 100%;
+        font-size: 0.85em;
     }
+}
+
+/* Camera toggle styles */
+#camera-toggle-group {
+    margin-bottom: 10px;
+}
+
+.camera-toggle {
+    transition: all 0.2s ease;
+}
+
+.camera-toggle.active {
+    box-shadow: 0 0 8px rgba(23, 162, 184, 0.3);
+}
+
+.camera-toggle:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
 }

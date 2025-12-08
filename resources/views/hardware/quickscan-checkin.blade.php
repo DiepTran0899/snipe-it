@@ -31,7 +31,11 @@
                         <div class="col-md-9">
                             <div class="input-group col-md-11 required">
                                 <input type="text" class="form-control" name="asset_tag" id="asset_tag" placeholder="{{ trans('general.scan_or_type') }}" value="{{ old('asset_tag') }}" autocomplete="off">
-
+                                <span class="input-group-btn">
+                                    <button type="button" id="add-tag-btn" class="btn btn-primary" title="Add to list">
+                                        <i class="fas fa-plus"></i>
+                                    </button>
+                                </span>
                             </div>
                             {!! $errors->first('asset_tag', '<span class="alert-msg" aria-hidden="true"><i class="fas fa-times" aria-hidden="true"></i> :message</span>') !!}
                             <div class="help-block">{{ trans('general.quickscan_instructions') }}</div>
@@ -50,6 +54,18 @@
                             <div id="scanner-controls" style="margin-top: 8px; display: none;">
                                 <label class="control-label" style="display: block; margin-bottom: 8px;">{{ trans('general.select_camera') }}</label>
                                 <div id="camera-toggle-group" style="display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px;"></div>
+                                
+                                <!-- Zoom Controls -->
+                                <div id="zoom-controls" style="margin-top: 12px; display: flex; align-items: center; gap: 8px;">
+                                    <button type="button" id="zoom-out-btn" class="btn btn-default btn-sm">
+                                        <i class="fas fa-search-minus"></i>
+                                    </button>
+                                    <span id="zoom-level-display" style="min-width: 40px; text-align: center; font-weight: 600; color: #333;">1.0x</span>
+                                    <button type="button" id="zoom-in-btn" class="btn btn-default btn-sm">
+                                        <i class="fas fa-search-plus"></i>
+                                    </button>
+                                </div>
+                                
                                 <div id="scanner-status" style="margin-top: 6px; font-size: 0.9em; color: #666;"></div>
                             </div>
 
@@ -151,13 +167,11 @@
 
 @section('moar_scripts')
     <script src="/js/html5-qrcode.min.js"></script>
+    <script src="/js/qrcode-scanner-v3.js"></script>
     <script nonce="{{ csrf_token() }}">
 
         // scannedTags holds the list of scanned asset tags to batch submit
         var scannedTags = [];
-        var html5QrcodeScanner = null;
-
-        // Store both tag and lookup type
         var scannedTagsWithType = [];
 
         function addScannedTag(tag, source = 'manual') {
@@ -176,12 +190,12 @@
                 
                 if (hardwareMatch && hardwareMatch[1]) {
                     tag = hardwareMatch[1];
-                    lookupType = 'id'; // /hardware/ID → search by ID first
+                    lookupType = 'id';
                     displaySource = ' (ID)';
                     source = 'qr_url';
                 } else if (htMatch && htMatch[1]) {
                     tag = htMatch[1];
-                    lookupType = 'tag'; // /ht/TAG → search by asset_tag first
+                    lookupType = 'tag';
                     displaySource = ' (Tag)';
                     source = 'qr_url';
                 }
@@ -192,27 +206,39 @@
             if (duplicate) return;
             
             scannedTagsWithType.push({ tag: tag, lookupType: lookupType, source: source });
-            scannedTags.push(tag); // Keep for backward compatibility
+            scannedTags.push(tag);
             $('#scanned-tags').show();
             $('#tag-count').text(scannedTagsWithType.length);
             
             var badgeClass = (lookupType === 'id') ? 'badge-warning' : 'badge-info';
             var badgeText = (lookupType === 'id') ? '{{ trans("general.numeric_id") }}' : '{{ trans("general.asset_tag") }}';
             
+            // Use index for reliable removal
+            var currentIndex = scannedTagsWithType.length - 1;
+            
             $('#scanned-list').prepend(
-                '<li class="list-group-item d-flex justify-content-between align-items-center">' +
+                '<li class="list-group-item d-flex justify-content-between align-items-center" data-index="' + currentIndex + '">' +
                 '<span>' + $('<div/>').text(tag).html() + ' <span class="badge ' + badgeClass + '" style="margin-left:8px;">' + badgeText + '</span></span>' +
-                '<button type="button" class="btn btn-xs btn-danger remove-tag" data-tag="' + $('<div/>').text(tag).html() + '" data-lookup-type="' + lookupType + '">&times;</button>' +
+                '<button type="button" class="btn btn-xs btn-danger remove-tag" data-index="' + currentIndex + '">&times;</button>' +
                 '</li>'
             );
         }
 
         $(document).on('click', '.remove-tag', function(){
-            var tag = $(this).data('tag');
-            var lookupType = $(this).data('lookup-type') || 'tag';
-            scannedTagsWithType = scannedTagsWithType.filter(function(item){ return !(item.tag === tag && item.lookupType === lookupType); });
-            scannedTags = scannedTags.filter(function(t){ return t !== tag; });
+            var index = parseInt($(this).data('index'));
+            if (index >= 0 && index < scannedTagsWithType.length) {
+                scannedTagsWithType.splice(index, 1);
+                scannedTags.splice(index, 1);
+            }
             $(this).closest('li').remove();
+            
+            // Reindex all remaining items
+            $('#scanned-list li').each(function(i){
+                var actualIndex = scannedTagsWithType.length - 1 - i;
+                $(this).attr('data-index', actualIndex);
+                $(this).find('.remove-tag').attr('data-index', actualIndex);
+            });
+            
             $('#tag-count').text(scannedTagsWithType.length);
             if (scannedTagsWithType.length === 0) {
                 $('#scanned-tags').hide();
@@ -220,14 +246,14 @@
         });
 
         $('#start-scanner').on('click', function(){
-            if (typeof Html5Qrcode === 'undefined') {
+            if (typeof Html5Qrcode === 'undefined' || typeof QRCodeScanner === 'undefined') {
                 $('#scanner-status').html(
                     '<div style="color: #d9534f; padding: 10px; background: #f2dede; border-radius: 3px;">' +
                     '<i class="fas fa-exclamation-triangle"></i> ' +
                     '{{ trans('general.scanner_library_failed') }}' +
                     '</div>'
                 );
-                console.error('Html5Qrcode is undefined');
+                console.error('Required libraries not loaded');
                 return;
             }
 
@@ -236,87 +262,70 @@
             $('#stop-scanner').show();
             $('#scanner-controls').show();
 
-            if (!html5QrcodeScanner) {
-                html5QrcodeScanner = new Html5Qrcode("scanner");
-                $('#scanner-status').html('<i class="fas fa-spinner fa-spin"></i> {{ trans('general.detecting_cameras') }}');
-
-                if (Html5Qrcode.getCameras) {
-                    Html5Qrcode.getCameras().then(cameras => {
-                        $('#camera-toggle-group').empty();
-                        if (cameras && cameras.length) {
-                            cameras.forEach(function(cam, idx){
-                                var label = cam.label || ('{{ trans('general.camera') }} ' + (idx+1));
-                                var btnClass = (idx === 0) ? 'btn-info active' : 'btn-default';
-                                var btn = $('<button type="button" class="btn btn-sm ' + btnClass + ' camera-toggle" data-device-id="' + cam.id + '">')
-                                    .html('<i class="fas fa-camera"></i> ' + label);
-                                $('#camera-toggle-group').append(btn);
-                            });
-                            $('#scanner-status').html('<i class="fas fa-check text-success"></i> {{ trans('general.camera_ready') }}');
-                            startScannerWithDevice(cameras[0].id);
-                        } else {
-                            $('#scanner-status').html(
-                                '<div style="color: #d9534f;">' +
-                                '<i class="fas fa-camera-slash"></i> {{ trans('general.no_camera_found') }}' +
-                                '</div>'
-                            );
-                        }
-                    }).catch(err => {
-                        console.error('getCameras error', err);
-                        $('#scanner-status').html(
-                            '<small style="color: #666;">' +
-                            '<i class="fas fa-info-circle"></i> {{ trans('general.using_default_camera') }}' +
-                            '</small>'
-                        );
-                        startScannerWithDevice({ facingMode: "environment" });
-                    });
-                } else {
-                    startScannerWithDevice({ facingMode: "environment" });
-                }
-            } else {
-                html5QrcodeScanner.resume().then(() => {
-                    $('#scanner-status').html('<i class="fas fa-check text-success"></i> {{ trans('general.scanner_running') }}');
-                }).catch(err => {
-                    console.error('Resume failed', err);
-                    $('#scanner-status').html('<div style="color: #d9534f;"><i class="fas fa-times"></i> ' + err.message + '</div>');
-                });
+            // Initialize scanner on first use
+            if (!QRCodeScanner.getScanner()) {
+                QRCodeScanner.init('scanner');
             }
+
+            $('#scanner-status').html('<i class="fas fa-spinner fa-spin"></i> {{ trans('general.detecting_cameras') }}');
+
+            QRCodeScanner.getCameras()
+                .then(cameras => {
+                    $('#camera-toggle-group').empty();
+                    if (cameras && cameras.length) {
+                        cameras.forEach(function(cam, idx){
+                            var label = cam.label || ('{{ trans('general.camera') }} ' + (idx+1));
+                            var btnClass = (idx === 0) ? 'btn-info active' : 'btn-default';
+                            var btn = $('<button type="button" class="btn btn-sm ' + btnClass + ' camera-toggle" data-device-id="' + cam.id + '">')
+                                .html('<i class="fas fa-camera"></i> ' + label);
+                            $('#camera-toggle-group').append(btn);
+                        });
+                        $('#scanner-status').html('<i class="fas fa-check text-success"></i> {{ trans('general.camera_ready') }}');
+                        startScannerWithDevice(cameras[0].id);
+                    } else {
+                        $('#scanner-status').html(
+                            '<div style="color: #d9534f;">' +
+                            '<i class="fas fa-camera-slash"></i> {{ trans('general.no_camera_found') }}' +
+                            '</div>'
+                        );
+                    }
+                })
+                .catch(err => {
+                    console.error('getCameras error', err);
+                    $('#scanner-status').html(
+                        '<small style="color: #666;">' +
+                        '<i class="fas fa-info-circle"></i> {{ trans('general.using_default_camera') }}' +
+                        '</small>'
+                    );
+                    startScannerWithDevice({ facingMode: "environment" });
+                });
         });
 
         function startScannerWithDevice(deviceId) {
-            if (!html5QrcodeScanner) return;
-            const config = { fps: 10, qrbox: { width: 250, height: 250 } };
-            html5QrcodeScanner.start(deviceId, config,
-                (decodedText, decodedResult) => {
+            QRCodeScanner.startScannerWithDevice(
+                deviceId,
+                function(decodedText) {
+                    // Success callback
                     addScannedTag(decodedText);
-                    html5QrcodeScanner.pause();
-                    setTimeout(function(){ html5QrcodeScanner.resume(); }, 700);
                 },
-                (errorMessage) => {
-                    // ignore transient decode errors
+                function(error) {
+                    // Error callback
+                    console.error('Scanner error:', error);
+                    $('#scanner-status').html('<div style="color: #d9534f;"><i class="fas fa-times"></i> ' + error.message + '</div>');
                 }
-            ).then(() => {
-                $('#scanner-status').html(
-                    '<i class="fas fa-check text-success"></i> ' +
-                    '{{ trans('general.scanner_active') }} <small style="display: block; margin-top: 4px; color: #999;">{{ trans('general.point_camera_qr') }}</small>'
-                );
-            }).catch(err => {
-                console.error('Unable to start scanner', err);
-                $('#scanner-status').html('<div style="color: #d9534f;"><i class="fas fa-times"></i> ' + err.message + '</div>');
-            });
+            );
         }
 
         $('#stop-scanner').on('click', function(){
-            if (html5QrcodeScanner) {
-                html5QrcodeScanner.stop().then(() => {
-                    $('#scanner').hide();
-                    $('#start-scanner').show();
-                    $('#stop-scanner').hide();
-                    $('#scanner-controls').hide();
-                    $('#scanner-status').html('');
-                }).catch(err => {
-                    console.error('Error stopping scanner', err);
-                });
-            }
+            QRCodeScanner.stop().then(() => {
+                $('#scanner').hide();
+                $('#start-scanner').show();
+                $('#stop-scanner').hide();
+                $('#scanner-controls').hide();
+                $('#scanner-status').html('');
+            }).catch(err => {
+                console.error('Error stopping scanner', err);
+            });
         });
 
         // Allow manual entry + Enter to add to list
@@ -331,22 +340,39 @@
             }
         });
 
+        // Add tag button click handler
+        $('#add-tag-btn').on('click', function(){
+            var v = $('#asset_tag').val();
+            if (v) {
+                addScannedTag(v);
+                $('#asset_tag').val('').focus();
+            }
+        });
+
         // Camera toggle button handler
         $(document).on('click', '.camera-toggle', function(){
             var deviceId = $(this).data('device-id');
-            if (!html5QrcodeScanner) return;
             
             // Update active state
             $('.camera-toggle').removeClass('btn-info active').addClass('btn-default');
             $(this).removeClass('btn-default').addClass('btn-info active');
             
             // Restart scanner with new device
-            html5QrcodeScanner.stop().then(function(){
+            QRCodeScanner.stop().then(function(){
                 startScannerWithDevice(deviceId);
             }).catch(function(err){
                 console.error('Stop before restart failed', err);
                 $('#scanner-status').html('<div style="color: #d9534f;"><i class="fas fa-times"></i> ' + err.message + '</div>');
             });
+        });
+
+        // Zoom control handlers
+        $('#zoom-in-btn').on('click', function(){
+            QRCodeScanner.zoomIn();
+        });
+
+        $('#zoom-out-btn').on('click', function(){
+            QRCodeScanner.zoomOut();
         });
 
         $("#checkin-form").submit(function (event) {

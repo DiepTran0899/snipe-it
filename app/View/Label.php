@@ -113,19 +113,13 @@ class Label implements View
 
                     $logo = null;
 
-                    // For Brother tape templates TZe_24mm_B and TZe_24mm_C, always prefer the asset's company logo
-                    // regardless of the global `label2_asset_logo` setting.
-                    if (in_array($template->getName(), ['Tapes\\Brother\\TZe_24mm_B', 'Tapes\\Brother\\TZe_24mm_C'])
-                        && $asset->company && $asset->company->image != '') {
+                    // Universal behavior for all logo-capable templates:
+                    // Prefer the asset's company logo; fallback to the site label logo.
+                    if ($asset->company && $asset->company->image != '') {
                         $logo = Storage::disk('public')->path('companies/'.e($asset->company->image));
-                    } else {
-                        // Legacy behavior: use asset company logo only when enabled in settings
-                        if ($settings->label2_asset_logo && $asset->company && $asset->company->image != '') {
-                            $logo = Storage::disk('public')->path('companies/'.e($asset->company->image));
-                        } elseif (!empty($settings->label_logo)) {
-                            // Use the general site label logo, if available
-                            $logo = Storage::disk('public')->path('/'.e($settings->label_logo));
-                        }
+                    } elseif (!empty($settings->label_logo)) {
+                        // Use the general site label logo, if available
+                        $logo = Storage::disk('public')->path('/'.e($settings->label_logo));
                     }
 
                     if (!empty($logo)) {

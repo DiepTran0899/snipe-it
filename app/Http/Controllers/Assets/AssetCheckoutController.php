@@ -117,7 +117,9 @@ class AssetCheckoutController extends Controller
             $settings = \App\Models\Setting::getSettings();
 
             // We have to check whether $target->company_id is null here since locations don't have a company yet
-            if (($settings->full_multiple_companies_support) && ((!is_null($target->company_id)) &&  (!is_null($asset->company_id)))) {
+            if (($settings->full_multiple_companies_support)
+                && !auth()->user()->isSuperUser()
+                && ((!is_null($target->company_id)) &&  (!is_null($asset->company_id)))) {
                 if ($target->company_id != $asset->company_id){
                     return redirect()->route('hardware.checkout.create', $asset)->with('error', trans('general.error_user_company'));
                 }

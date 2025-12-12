@@ -94,13 +94,30 @@ class LicenseCheckoutController extends Controller
 
         if ($request->filled('asset_id')) {
             session()->put(['checkout_to_type' => 'asset']);
+            // FMCS enforcement for asset target unless superadmin
             $checkoutTarget = $this->checkoutToAsset($licenseSeat);
+            if (is_object($checkoutTarget)) {
+                $settings = \App\Models\Setting::getSettings();
+                if ($settings->full_multiple_companies_support && !auth()->user()->isSuperUser()) {
+                    if (!is_null($licenseSeat->license->company_id) && !is_null($checkoutTarget->company_id) && ($licenseSeat->license->company_id !== $checkoutTarget->company_id)) {
+                        return redirect()->route('licenses.checkout.show', $licenseId)->with('error', trans('general.error_user_company'));
+                    }
+                }
+            }
             $request->request->add(['assigned_asset' => $checkoutTarget->id]);
             session()->put(['redirect_option' => $request->get('redirect_option'), 'checkout_to_type' => 'asset']);
 
         } elseif ($request->filled('assigned_to')) {
             session()->put(['checkout_to_type' => 'user']);
             $checkoutTarget = $this->checkoutToUser($licenseSeat);
+            if (is_object($checkoutTarget)) {
+                $settings = \App\Models\Setting::getSettings();
+                if ($settings->full_multiple_companies_support && !auth()->user()->isSuperUser()) {
+                    if (!is_null($licenseSeat->license->company_id) && !is_null($checkoutTarget->company_id) && ($licenseSeat->license->company_id !== $checkoutTarget->company_id)) {
+                        return redirect()->route('licenses.checkout.show', $licenseId)->with('error', trans('general.error_user_company'));
+                    }
+                }
+            }
             $request->request->add(['assigned_user' => $checkoutTarget->id]);
             session()->put(['redirect_option' => $request->get('redirect_option'), 'checkout_to_type' => 'user']);
         }

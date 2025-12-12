@@ -89,6 +89,14 @@ class ConsumableCheckoutController extends Controller
             return redirect()->route('consumables.checkout.show', $consumable)->with('error', trans('admin/consumables/message.checkout.user_does_not_exist'))->withInput();
         }
 
+        // Enforce FMCS unless superadmin; require company match when both set
+        $settings = \App\Models\Setting::getSettings();
+        if ($settings->full_multiple_companies_support && !auth()->user()->isSuperUser()) {
+            if (!is_null($consumable->company_id) && !is_null($user->company_id) && ($consumable->company_id !== $user->company_id)) {
+                return redirect()->route('consumables.checkout.show', $consumable)->with('error', trans('general.error_user_company'));
+            }
+        }
+
         // Update the consumable data
         $consumable->assigned_to = e($request->input('assigned_to'));
 

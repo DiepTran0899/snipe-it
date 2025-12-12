@@ -72,6 +72,13 @@ class AccessoryCheckoutController extends Controller
 
         $target = $this->determineCheckoutTarget();
         session()->put(['checkout_to_type' => $target]);
+        // Enforce FMCS unless superadmin; require company match when both set
+        $settings = \App\Models\Setting::getSettings();
+        if ($settings->full_multiple_companies_support && !auth()->user()->isSuperUser()) {
+            if (!is_null($accessory->company_id) && !is_null($target->company_id) && ($accessory->company_id !== $target->company_id)) {
+                return redirect()->route('accessories.checkout.show', $accessory)->with('error', trans('general.error_user_company'));
+            }
+        }
         
         $accessory->checkout_qty = $request->input('checkout_qty', 1);
         

@@ -14,7 +14,6 @@ class TZe_24mm_C extends TZe_24mm
     private const LABEL_MARGIN   = - 0.35;
     private const FIELD_SIZE     =   3.20;
     private const FIELD_MARGIN   =   0.15;
-    private const BORDER_TEXT_SIZE = 1.60; // small text for border (unused for margins now)
 
     public function getUnit()
     {
@@ -38,8 +37,7 @@ class TZe_24mm_C extends TZe_24mm
     }
     public function getSupportFields()
     {
-        // Support one extra field like TZe_24mm_B
-        return 1; 
+        return 0; 
     }
     public function getSupportLogo()
     {
@@ -93,38 +91,14 @@ class TZe_24mm_C extends TZe_24mm
         $currentX += $usableWidth - (self::LOGO_MARGIN/2);
 
         if ($record->has('logo')) {
-            // Adjust logo size to match QR code square size
             $logoSize = static::writeImage(
                 $pdf, $record->get('logo'),
                 $currentX, $pa->y1,
-                $barcodeSize, $barcodeSize,
+                self::LOGO_MAX_WIDTH, $usableHeight,
                 'L', 'T', 300, true, false, 0
             );
-
-            // If a field is provided, render its value below the logo area
-            if ($record->has('fields')) {
-                $fields = $record->get('fields');
-                if (is_iterable($fields) && count($fields) > 0) {
-                    $first = $fields[0];
-                    $value = is_array($first) ? ($first['value'] ?? '') : '';
-                    if (!empty($value)) {
-                        // Place text centered under the logo; constrain to area to the right of the QR code
-                        $textY = $pa->y1 + $logoSize[1] + self::TITLE_MARGIN;
-                        $availableWidthRight = $pa->x2 - $currentX; // from currentX to right printable edge
-                        static::writeText(
-                            $pdf, $value,
-                            $currentX, $textY,
-                            'freemono', 'b', self::TAG_SIZE, 'C',
-                            $availableWidthRight, self::TAG_SIZE, true, 0
-                        );
-                    }
-                }
-            }
-
             $currentX += $logoSize[0] + self::LOGO_MARGIN;
             $usableWidth -= $logoSize[0] + self::LOGO_MARGIN;
         }
-
-        // Border margin field rendering removed: field now only appears below the logo.
     }
 }

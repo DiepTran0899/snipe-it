@@ -18,7 +18,6 @@
     <div class="col-md-12">
         <div class="box box-default">
             <div class="box-body">
-                <div class="table-responsive">
 
                     <table
                     name="assetsReport"
@@ -70,7 +69,6 @@
                             </tr>
                         </thead>
                     </table>
-                </div> <!-- .table-responsive -->
             </div>
         </div>
     </div>

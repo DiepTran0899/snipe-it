@@ -17,13 +17,13 @@ return new class extends Migration
         Schema::table('settings', function (Blueprint $table) {
             $table->string('link_dark_color')->after('header_color')->nullable()->default(null);
             $table->string('link_light_color')->after('header_color')->nullable()->default(null);
-            $table->string('nav_link_color')->after('header_color')->nullable()->default(null);
+            $table->string('nav_link_color')->after('header_color')->nullable()->default('#ffffff');
         });
 
         Schema::table('users', function (Blueprint $table) {
             $table->string('link_dark_color')->after('skin')->nullable()->default(null);
             $table->string('link_light_color')->after('skin')->nullable()->default(null);
-            $table->string('nav_link_color')->after('skin')->nullable()->default(null);
+            $table->string('nav_link_color')->after('skin')->nullable()->default('#ffffff');
         });
 
 
@@ -41,36 +41,42 @@ return new class extends Migration
                     $link_dark_color = '#9ACD32';
                     $link_light_color = '#00a65a';
                     $nav_color = '#ffffff';
+                    break;
 
                 case ('red' || 'red-dark'):
                     $header_color = '#dd4b39';
                     $link_dark_color = '#ed9a9a';
                     $link_light_color = '#dd4b39';
                     $nav_color = '#ffffff';
+                    break;
 
                 case ('orange' || 'orange-dark'):
                     $header_color = '#FF851B';
                     $link_dark_color = '#FFA500';
                     $link_light_color = '#FF8C00';
                     $nav_color = '#ffffff';
+                    break;
 
                 case ('black' || 'black-dark'):
                     $header_color = '#000000';
                     $link_dark_color = '#d4d2d2';
                     $link_light_color = '#454759';
                     $nav_color = '#ffffff';
+                    break;
 
                 case ('purple' || 'purple-dark'):
                     $header_color = '#605ca8';
                     $link_dark_color = '#AC83FF';
                     $link_light_color = '#605ca8';
                     $nav_color = '#ffffff';
+                    break;
 
                 case ('yellow' || 'yellow-dark') :
                     $header_color = '#FBCC34';
                     $link_dark_color = '#F0E68C';
                     $link_light_color = '#a69f08';
                     $nav_color = '#ffffff';
+                    break;
 
                 case 'contrast':
                     $header_color = '#001F3F';

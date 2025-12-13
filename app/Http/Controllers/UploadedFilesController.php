@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Helpers\Helper;
 use App\Helpers\StorageHelper;
 use App\Http\Requests\UploadFileRequest;
 use App\Models\Actionlog;
+use App\Models\Import;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
@@ -155,7 +157,31 @@ class UploadedFilesController extends Controller
         }
 
         // The file doesn't seem to really exist, so report an error
-        return redirect()->back()->withFragment('files')->with('success', trans_choice('general.file_upload_status.delete.error', 1));
+        return redirect()->back()->withFragment('files')->with('error', trans_choice('general.file_upload_status.delete.error', 1));
+
+    }
+
+    public function downloadImport(Import $import) {
+
+        $this->authorize('import');
+
+        if ($import = Import::find($import->id)) {
+
+            if ((auth()->user()->id != $import->created_by) && (!auth()->user()->isSuperUser())) {
+                return redirect()->back()->with('error', trans('general.file_upload_status.file_not_found'));
+            }
+
+            if (config('filesystems.default') == 's3_private') {
+                return redirect()->away(Storage::disk('s3_private')->temporaryUrl('private_uploads/imports/' . $import->file_path, now()->addMinutes(5)));
+            }
+
+            if (Storage::exists('private_uploads/imports/' . $import->file_path)) {
+                return response()->download(config('app.private_uploads') . '/imports/' . $import->file_path);
+            }
+
+        }
+
+        return redirect()->back()->with('error', trans('general.file_upload_status.file_not_found'));
 
     }
 

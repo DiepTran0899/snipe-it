@@ -347,6 +347,7 @@ class Importer extends Component
 
         $this->locations_fields = [
             'id' => trans('general.id'),
+            'company' => trans('general.company'),
             'name' => trans('general.name'),
             'address' => trans('general.address'),
             'address2' => trans('general.importer.address2'),
@@ -360,6 +361,7 @@ class Importer extends Component
             'parent_location' => trans('admin/locations/table.parent'),
             'state' => trans('general.state'),
             'zip' => trans('general.zip'),
+            'tag_color' => trans('general.tag_color'),
         ];
 
         $this->suppliers_fields = [
@@ -608,6 +610,14 @@ class Importer extends Component
                 [
                     'Manager Username',
                 ],
+            'tag_color' =>
+                [
+                    'color',
+                    'tag color',
+                    'label color',
+                    'color code',
+                    trans('general.tag_color'),
+                ],
         ];
 
         $this->columnOptions[''] = $this->getColumns(''); //blank mode? I don't know what this is supposed to mean
@@ -663,6 +673,13 @@ class Importer extends Component
             return;
         }
 
+        if ((auth()->user()->id != $import->created_by) && (!auth()->user()->isSuperUser())) {
+            $this->message = trans('general.generic_model_not_found', ['model' => trans('general.import')]);
+            $this->message_type = 'danger';
+
+            return;
+        }
+
         if (Storage::delete('private_uploads/imports/' . $import->file_path)) {
             $import->delete();
             $this->message = trans('admin/hardware/message.import.file_delete_success');
@@ -673,7 +690,7 @@ class Importer extends Component
             return;
         }
 
-        $this->message = trans('admin/hardware/message.import.file_delete_error');
+        $this->message = trans('general.generic_model_not_found', ['model' => trans('general.import')]);
         $this->message_type = 'danger';
     }
 
